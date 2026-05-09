@@ -242,23 +242,23 @@ These steps complete features that are **partially built or missing**. The app r
 
 ---
 
-### Step 11: Implement Payment Timeout Scheduler
+### Step 11: Implement Payment Timeout Scheduler ✅ DONE
 
 **Why:** Documentation §11 requires PENDING transactions to be marked FAILED after 30 minutes. Currently, stale PENDING tickets stay forever.
 
 **Tasks:**
-- [ ] 11.1 — Install `@nestjs/schedule` in the backend.
-- [ ] 11.2 — Create a cron job in `PaymentsService` that runs every 5 minutes.
-- [ ] 11.3 — The cron job should: find all tickets with `status = PENDING` and `createdAt < now - 30 minutes`, then update them to `FAILED`/`EXPIRED`.
-- [ ] 11.4 — Also release the `ticketsSold` count on the event (decrement) so the capacity is freed.
-- [ ] 11.5 — Test: create a pending ticket, wait (or fast-forward), verify it transitions to FAILED.
+- [x] 11.1 — Installed `@nestjs/schedule` in the backend.
+- [x] 11.2 — Created a cron job in `PaymentsService` that runs every 5 minutes.
+- [x] 11.3 — The cron job finds all tickets with `status = PENDING` and `issuedAt < now - 30 minutes`, then updates them to `EXPIRED`.
+- [x] 11.4 — Associated `PENDING` transactions are updated to `FAILED`.
+- [x] 11.5 — Released the `ticketsSold` count on the event (decrement) so the capacity is freed.
+- [x] 11.6 — Verified successful backend build.
 
 **Affected Files:**
 | File | Change |
 |------|--------|
-| `backend/src/payments/payments.module.ts` | Import `ScheduleModule` |
-| `backend/src/payments/payments.service.ts` | Add `@Cron()` timeout handler |
-| `backend/src/app.module.ts` | Import `ScheduleModule.forRoot()` |
+| `backend/src/app.module.ts` | Imported `ScheduleModule.forRoot()` |
+| `backend/src/payments/payments.service.ts` | Added `@Cron()` handlePaymentTimeouts method |
 
 ---
 

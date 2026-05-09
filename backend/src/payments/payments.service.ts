@@ -1,13 +1,59 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, Logger } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { TicketsService } from '../tickets/tickets.service';
 
 @Injectable()
 export class PaymentsService {
+  private readonly logger = new Logger(PaymentsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly ticketsService: TicketsService,
   ) {}
+
+  @Cron(CronExpression.EVERY_5_MINUTES)
+  async handlePaymentTimeouts() {
+    const timeoutThreshold = new Date();
+    timeoutThreshold.setMinutes(timeoutThreshold.getMinutes() - 30);
+
+    const expiredTickets = await this.prisma.ticket.findMany({
+      where: {
+        status: 'PENDING',
+        issuedAt: { lt: timeoutThreshold },
+      },
+    });
+
+    if (expiredTickets.length === 0) return;
+
+    this.logger.log(`Expiring ${expiredTickets.length} pending tickets...`);
+
+    for (const ticket of expiredTickets) {
+      try {
+        await this.prisma.$transaction(async (tx) => {
+          // Update ticket to EXPIRED
+          await tx.ticket.update({
+            where: { id: ticket.id },
+            data: { status: 'EXPIRED' },
+          });
+
+          // Update associated pending transactions to FAILED
+          await tx.transaction.updateMany({
+            where: { ticketId: ticket.id, status: 'PENDING' },
+            data: { status: 'FAILED' },
+          });
+
+          // Release capacity
+          await tx.event.update({
+            where: { id: ticket.eventId },
+            data: { ticketsSold: { decrement: 1 } },
+          });
+        });
+      } catch (error) {
+        this.logger.error(`Failed to expire ticket ${ticket.id}:`, error);
+      }
+    }
+  }
 
   // Simulation of Telebirr Webhook Verification
   verifyTelebirrSignature(ussd: string, sign: string): boolean {

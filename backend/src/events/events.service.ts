@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -100,6 +100,23 @@ export class EventsService {
     if (!event || event.organizerId !== organizerId) {
       throw new NotFoundException('Event not found or unauthorized');
     }
+
+    // Validation for transitions
+    if (status === 'ACTIVE') {
+      if (event.ticketPrice <= 0) {
+        throw new BadRequestException('Cannot activate an event with a zero ticket price.');
+      }
+      if (!event.venue || event.venue.trim().length === 0) {
+        throw new BadRequestException('Cannot activate an event without a valid venue.');
+      }
+    }
+
+    if (status === 'SOLD_OUT') {
+      if (event.ticketsSold < event.maxCapacity) {
+        throw new BadRequestException('Cannot mark as sold out when capacity is still available.');
+      }
+    }
+
     return this.prisma.event.update({
       where: { id: eventId },
       data: { status },
