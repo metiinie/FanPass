@@ -35,10 +35,11 @@ export async function fetchBackend(endpoint: string, options: FetchOptions = {})
     headers: customHeaders,
   });
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-    throw new Error(errorData?.message || `API error: ${response.status}`);
+  const json = await response.json();
+  
+  if (!response.ok || json.success === false) {
+    throw new Error(json.message || `API error: ${response.status}`);
   }
 
-  return response;
+  return json.data;
 }
