@@ -63,11 +63,31 @@ export class AuthService {
       data: { used: true },
     });
 
+    const superAdmin = await this.prisma.superAdmin.findUnique({
+      where: { phone },
+    });
+
+    if (superAdmin) {
+      const payload = {
+        id: superAdmin.id,
+        phone: superAdmin.phone,
+        name: superAdmin.name,
+        role: 'SUPER_ADMIN',
+      };
+      return {
+        user: payload,
+        accessToken: this.jwtService.sign(payload),
+      };
+    }
+
     const organizer = await this.prisma.organizer.findUnique({
       where: { phone },
     });
 
     if (organizer) {
+      if (!organizer.isActive) {
+        throw new UnauthorizedException('Account is suspended. Please contact support.');
+      }
       const payload = {
         id: organizer.id,
         phone: organizer.phone,

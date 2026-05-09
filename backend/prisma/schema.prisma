@@ -14,9 +14,17 @@ model Organizer {
   id        String   @id @default(cuid())
   phone     String   @unique
   name      String
+  isActive  Boolean  @default(true) // Support for suspension
   createdAt DateTime @default(now())
   events    Event[]
   staff     Staff[]
+}
+
+model SuperAdmin {
+  id        String   @id @default(cuid())
+  phone     String   @unique
+  name      String
+  createdAt DateTime @default(now())
 }
 
 model Staff {

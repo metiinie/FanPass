@@ -8,6 +8,7 @@ import { EventsModule } from './events/events.module';
 import { TicketsModule } from './tickets/tickets.module';
 import { StaffModule } from './staff/staff.module';
 import { PaymentsModule } from './payments/payments.module';
+import { AdminModule } from './admin/admin.module';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 
@@ -23,7 +24,8 @@ import { APP_GUARD } from '@nestjs/core';
     EventsModule, 
     TicketsModule, 
     StaffModule, 
-    PaymentsModule
+    PaymentsModule,
+    AdminModule
   ],
   controllers: [AppController],
   providers: [

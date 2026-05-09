@@ -28,30 +28,30 @@ export class EventsController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ORGANIZER')
+  @Roles('ORGANIZER', 'SUPER_ADMIN')
   @Get()
   async getMyEvents(@Request() req) {
-    return this.eventsService.getEventsByOrganizer(req.user.id);
+    return this.eventsService.getEventsByOrganizer(req.user.id, req.user.role);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ORGANIZER')
+  @Roles('ORGANIZER', 'SUPER_ADMIN')
   @Get(':id')
   async getEventById(@Request() req, @Param('id') id: string) {
-    return this.eventsService.getEventById(id, req.user.id);
+    return this.eventsService.getEventById(id, req.user.id, req.user.role);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ORGANIZER')
+  @Roles('ORGANIZER', 'SUPER_ADMIN')
   @Get(':id/stats')
   async getEventStats(@Request() req, @Param('id') id: string) {
-    return this.eventsService.getEventStats(id, req.user.id);
+    return this.eventsService.getEventStats(id, req.user.id, req.user.role);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ORGANIZER')
+  @Roles('ORGANIZER', 'SUPER_ADMIN')
   @Patch(':id')
   async updateEventStatus(@Request() req, @Param('id') id: string, @Body() body: UpdateEventStatusDto) {
-    return this.eventsService.updateEventStatus(id, req.user.id, body.status);
+    return this.eventsService.updateEventStatus(id, req.user.id, req.user.role, body.status);
   }
 }
