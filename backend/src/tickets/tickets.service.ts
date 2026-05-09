@@ -62,9 +62,13 @@ export class TicketsService {
       }
 
       return await this.prisma.$transaction(async (tx) => {
-        const ticket = await tx.ticket.findUnique({
-          where: { id: decoded.ticketId },
-        });
+        // Use row-level locking (SELECT ... FOR UPDATE) to prevent double-scans
+        const tickets = await tx.$queryRaw<any[]>`
+          SELECT * FROM "Ticket" 
+          WHERE id = ${decoded.ticketId} 
+          FOR UPDATE
+        `;
+        const ticket = tickets[0];
 
         if (!ticket) throw new BadRequestException('Ticket not found');
         if (ticket.status === 'SCANNED') throw new ConflictException('Ticket already scanned');

@@ -367,14 +367,23 @@ These steps improve security, compliance with rule.md, and overall polish. They 
 
 ---
 
-### Step 17: Add Rate Limiting to All Endpoints
+### Step 17: Add Rate Limiting to All Endpoints ✅ DONE
 
 **Why:** Only the OTP endpoint has rate limiting. Other endpoints are unprotected.
 
 **Tasks:**
-- [ ] 17.1 — Install `@nestjs/throttler`.
-- [ ] 17.2 — Configure global rate limiting (e.g., 100 requests per minute per IP).
-- [ ] 17.3 — Apply stricter limits to sensitive endpoints (auth, ticket purchase).
+- [x] 17.1 — Installed `@nestjs/throttler`.
+- [x] 17.2 — Configured global rate limiting (100 requests per minute per IP) in `AppModule`.
+- [x] 17.3 — Applied stricter limits to sensitive endpoints (OTP: 5/min, Verify: 10/min, Initiate Ticket: 5/min).
+- [x] 17.4 — Verified successful backend build.
+
+**Affected Files:**
+| File | Change |
+|------|--------|
+| `backend/src/app.module.ts` | Configured ThrottlerModule and global guard |
+| `backend/src/auth/auth.controller.ts` | Added @Throttle decorators |
+| `backend/src/tickets/tickets.controller.ts` | Added @Throttle decorators |
+| `backend/package.json` | Added `@nestjs/throttler` dependency |
 
 ---
 
