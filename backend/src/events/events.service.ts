@@ -24,24 +24,32 @@ export class EventsService {
     });
   }
 
-  async getEventsByOrganizer(organizerId: string) {
+  async getEventsByOrganizer(organizerId: string, userRole: string) {
+    if (userRole === 'SUPER_ADMIN') {
+      return this.prisma.event.findMany({
+        orderBy: { createdAt: 'desc' },
+      });
+    }
     return this.prisma.event.findMany({
       where: { organizerId },
       orderBy: { createdAt: 'desc' },
     });
   }
 
-  async getEventById(id: string, organizerId: string) {
+  async getEventById(id: string, organizerId: string, userRole: string) {
     const event = await this.prisma.event.findUnique({
       where: { id },
     });
-    if (!event || event.organizerId !== organizerId) {
-      throw new NotFoundException('Event not found or unauthorized');
+    if (!event) {
+      throw new NotFoundException('Event not found');
+    }
+    if (userRole !== 'SUPER_ADMIN' && event.organizerId !== organizerId) {
+      throw new NotFoundException('Unauthorized access to event');
     }
     return event;
   }
 
-  async getEventStats(eventId: string, organizerId: string) {
+  async getEventStats(eventId: string, organizerId: string, userRole: string) {
     const event = await this.prisma.event.findUnique({
       where: { id: eventId },
       include: {
@@ -51,8 +59,12 @@ export class EventsService {
       },
     });
 
-    if (!event || event.organizerId !== organizerId) {
-      throw new NotFoundException('Event not found or unauthorized');
+    if (!event) {
+      throw new NotFoundException('Event not found');
+    }
+
+    if (userRole !== 'SUPER_ADMIN' && event.organizerId !== organizerId) {
+      throw new NotFoundException('Unauthorized access to event stats');
     }
 
     const recentScans = await this.prisma.scanLog.findMany({
@@ -89,16 +101,20 @@ export class EventsService {
         id: s.id,
         scannedAt: s.scannedAt,
         buyerPhone: s.ticket.buyerPhone,
-        staffName: s.staff.name,
+        staffName: s.staff ? s.staff.name : `Admin (${s.scannedByRole})`,
         result: s.result,
       })),
     };
   }
 
-  async updateEventStatus(eventId: string, organizerId: string, status: any) {
+  async updateEventStatus(eventId: string, organizerId: string, userRole: string, status: any) {
     const event = await this.prisma.event.findUnique({ where: { id: eventId } });
-    if (!event || event.organizerId !== organizerId) {
-      throw new NotFoundException('Event not found or unauthorized');
+    if (!event) {
+      throw new NotFoundException('Event not found');
+    }
+
+    if (userRole !== 'SUPER_ADMIN' && event.organizerId !== organizerId) {
+      throw new NotFoundException('Unauthorized access to update event');
     }
 
     // Validation for transitions

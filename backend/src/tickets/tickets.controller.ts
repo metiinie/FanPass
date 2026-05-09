@@ -23,9 +23,9 @@ export class TicketsController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('STAFF')
+  @Roles('STAFF', 'ORGANIZER', 'SUPER_ADMIN')
   @Post('validate')
   async validate(@Request() req, @Body() body: ValidateTicketDto) {
-    return this.ticketsService.validateTicket(body.eventId, req.user.id, body.token);
+    return this.ticketsService.validateTicket(body.eventId, req.user, body.token);
   }
 }

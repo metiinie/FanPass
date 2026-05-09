@@ -53,7 +53,23 @@ export class TicketsService {
     });
   }
 
-  async validateTicket(eventId: string, staffId: string, token: string) {
+  async validateTicket(eventId: string, user: any, token: string) {
+    // 1. Verify Authorization to scan for this event
+    if (user.role === 'STAFF') {
+      const assignment = await this.prisma.eventStaff.findUnique({
+        where: { eventId_staffId: { eventId, staffId: user.id } },
+      });
+      if (!assignment) {
+        throw new UnauthorizedException('Staff member is not assigned to this event');
+      }
+    } else if (user.role === 'ORGANIZER') {
+      const event = await this.prisma.event.findUnique({ where: { id: eventId } });
+      if (!event || event.organizerId !== user.id) {
+        throw new UnauthorizedException('Organizer does not own this event');
+      }
+    }
+    // SUPER_ADMIN is implicitly allowed
+
     try {
       const decoded = jwt.verify(token, this.JWT_SECRET) as any;
 
@@ -85,7 +101,9 @@ export class TicketsService {
           data: {
             ticketId: ticket.id,
             eventId: eventId,
-            staffId: staffId,
+            staffId: user.role === 'STAFF' ? user.id : null,
+            scannedById: user.id,
+            scannedByRole: user.role,
             result: 'VALID',
           },
         });

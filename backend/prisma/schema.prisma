@@ -115,16 +115,18 @@ model EventStaff {
 }
 
 model ScanLog {
-  id         String   @id @default(cuid())
-  ticket     Ticket   @relation(fields: [ticketId], references: [id])
-  ticketId   String   @unique
-  event      Event    @relation(fields: [eventId], references: [id])
-  eventId    String
-  staff      Staff    @relation(fields: [staffId], references: [id])
-  staffId    String
-  result     String   // "VALID" | "ALREADY_USED" | "INVALID" | "WRONG_EVENT"
-  scannedAt  DateTime @default(now())
-  deviceInfo String?
+  id            String   @id @default(cuid())
+  ticket        Ticket   @relation(fields: [ticketId], references: [id])
+  ticketId      String   @unique
+  event         Event    @relation(fields: [eventId], references: [id])
+  eventId       String
+  staff         Staff?   @relation(fields: [staffId], references: [id])
+  staffId       String?
+  scannedById   String   // Can be staffId or organizerId
+  scannedByRole String   // "STAFF" | "ORGANIZER" | "SUPER_ADMIN"
+  result        String   // "VALID" | "ALREADY_USED" | "INVALID" | "WRONG_EVENT"
+  scannedAt     DateTime @default(now())
+  deviceInfo    String?
 }
 
 model OtpCode {

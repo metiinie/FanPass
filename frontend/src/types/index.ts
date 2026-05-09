@@ -65,7 +65,7 @@ export interface StaffMember {
   assignments: { eventId: string; eventTitle: string }[];
 }
 
-export type UserRole = "ORGANIZER" | "STAFF";
+export type UserRole = "ORGANIZER" | "STAFF" | "SUPER_ADMIN";
 
 export interface SessionUser {
   id: string;
