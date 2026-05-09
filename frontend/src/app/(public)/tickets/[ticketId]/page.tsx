@@ -11,8 +11,7 @@ export const revalidate = 0; // Disable caching for ticket pages to ensure live 
 export default async function TicketPage({ params }: { params: { ticketId: string } }) {
   let ticket: any = null;
   try {
-    const res = await fetchBackend(`/tickets/${params.ticketId}`, { requireAuth: false });
-    ticket = await res.json();
+    ticket = await fetchBackend(`/tickets/${params.ticketId}`, { requireAuth: false });
   } catch (error) {
     console.error("Failed to fetch ticket:", error);
     notFound();
