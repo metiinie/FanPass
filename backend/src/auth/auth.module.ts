@@ -8,9 +8,17 @@ import { JwtStrategy } from './jwt.strategy';
 @Module({
   imports: [
     PassportModule,
-    JwtModule.register({
-      secret: process.env.NEXTAUTH_SECRET || 'fallback-secret-key-12345',
-      signOptions: { expiresIn: '7d' },
+    JwtModule.registerAsync({
+      useFactory: () => {
+        const secret = process.env.NEXTAUTH_SECRET;
+        if (!secret) {
+          throw new Error('NEXTAUTH_SECRET is not defined in environment variables');
+        }
+        return {
+          secret,
+          signOptions: { expiresIn: '7d' },
+        };
+      },
     }),
   ],
   controllers: [AuthController],

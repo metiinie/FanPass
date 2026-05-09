@@ -325,100 +325,118 @@ These steps improve security, compliance with rule.md, and overall polish. They 
 
 ---
 
-### Step 14: Add Standard API Response Wrapper
+### Step 15: Add Standard API Response Wrapper ✅ DONE
 
 **Why:** Rule.md §11 requires all responses in `{ success: boolean, message: string, data: any }` format. Currently, controllers return raw objects.
 
 **Tasks:**
-- [ ] 14.1 — Create `backend/src/common/interceptors/response.interceptor.ts` that wraps all responses.
-- [ ] 14.2 — Create `backend/src/common/filters/http-exception.filter.ts` for error responses.
-- [ ] 14.3 — Register both globally in `main.ts`.
-- [ ] 14.4 — Update frontend `fetchBackend()` to unwrap `.data` from responses.
+- [x] 15.1 — Created `backend/src/common/interceptors/response.interceptor.ts` that wraps all successful responses.
+- [x] 15.2 — Created `backend/src/common/filters/http-exception.filter.ts` for standardized error responses.
+- [x] 15.3 — Registered both globally in `main.ts`.
+- [x] 15.4 — Updated `fetchBackend()` in the frontend to automatically unwrap `.data` and handle the new error format.
+- [x] 15.5 — Updated all frontend pages and the QR scanner to support the new response structure.
+
+**Affected Files:**
+| File | Change |
+|------|--------|
+| `backend/src/common/` | [NEW] Interceptors and filters |
+| `backend/src/main.ts` | Global registration |
+| `frontend/src/lib/apiClient.ts` | Updated unwrapping logic |
+| `frontend/src/app/(staff)/scan/page.tsx` | Updated error handling |
+| `frontend/src/app/...` | Updated multiple page fetch calls |
 
 ---
 
-### Step 15: Add Security Headers & Harden CORS
+### Step 16: Add Security Headers & Harden CORS ✅ DONE
 
 **Why:** No `helmet` middleware, CORS is permissive.
 
 **Tasks:**
-- [ ] 15.1 — Install `helmet` in the backend.
-- [ ] 15.2 — Apply `app.use(helmet())` in `main.ts`.
-- [ ] 15.3 — Restrict CORS `origin` to only `FRONTEND_URL` (not `*`).
-- [ ] 15.4 — Remove the fallback secret `'fallback-secret-key-12345'` from `auth.module.ts`. Throw an error if `NEXTAUTH_SECRET` is not set.
+- [x] 16.1 — Installed `helmet` in the backend.
+- [x] 16.2 — Applied `app.use(helmet())` in `main.ts` for secure HTTP headers.
+- [x] 16.3 — Hardened CORS to strictly use the `FRONTEND_URL` from environment variables.
+- [x] 16.4 — Removed the insecure fallback JWT secret in `AuthModule` and enforced that `NEXTAUTH_SECRET` must be defined.
+- [x] 16.5 — Verified successful backend build.
+
+**Affected Files:**
+| File | Change |
+|------|--------|
+| `backend/src/main.ts` | Added helmet and CORS hardening |
+| `backend/src/auth/auth.module.ts` | Enforced strict JWT secret check |
+| `backend/package.json` | Added `helmet` dependency |
 
 ---
 
-### Step 16: Add Rate Limiting to All Endpoints
+### Step 17: Add Rate Limiting to All Endpoints
 
 **Why:** Only the OTP endpoint has rate limiting. Other endpoints are unprotected.
 
 **Tasks:**
-- [ ] 16.1 — Install `@nestjs/throttler`.
-- [ ] 16.2 — Configure global rate limiting (e.g., 100 requests per minute per IP).
-- [ ] 16.3 — Apply stricter limits to sensitive endpoints (auth, ticket purchase).
+- [ ] 17.1 — Install `@nestjs/throttler`.
+- [ ] 17.2 — Configure global rate limiting (e.g., 100 requests per minute per IP).
+- [ ] 17.3 — Apply stricter limits to sensitive endpoints (auth, ticket purchase).
 
 ---
 
-### Step 17: Add Row-Level Locking for Double-Scan Prevention
+### Step 18: Add Row-Level Locking for Double-Scan Prevention
 
 **Why:** The scan validation uses `$transaction` but not `SELECT ... FOR UPDATE`. Under high concurrency, a race condition is theoretically possible.
 
 **Tasks:**
-- [ ] 17.1 — In `tickets.service.ts` validate method, use `prisma.$queryRaw` with `SELECT ... FOR UPDATE` inside the transaction.
-- [ ] 17.2 — Test with concurrent scan requests to verify only one succeeds.
+- [ ] 18.1 — In `tickets.service.ts` validate method, use `prisma.$queryRaw` with `SELECT ... FOR UPDATE` inside the transaction.
+- [ ] 18.2 — Test with concurrent scan requests to verify only one succeeds.
 
 ---
 
-### Step 18: Create Missing Static Pages
+### Step 19: Create Missing Static Pages
 
 **Why:** Footer and landing page link to pages that don't exist.
 
 **Tasks:**
-- [ ] 18.1 — Create `frontend/src/app/(public)/events/page.tsx` — list all active events.
-- [ ] 18.2 — Create `frontend/src/app/(public)/terms/page.tsx` — basic terms of service.
+- [ ] 19.1 — Create `frontend/src/app/(public)/events/page.tsx` — list all active events.
+- [ ] 19.2 — Create `frontend/src/app/(public)/terms/page.tsx` — basic terms of service.
 
 ---
 
-### Step 19: Improve Ticket Page Polling
+### Step 20: Improve Ticket Page Polling
 
 **Why:** The pending ticket page uses `<meta http-equiv="refresh" content="10">` instead of JavaScript polling. This is crude and causes full page reloads.
 
 **Tasks:**
-- [ ] 19.1 — Replace the `<meta refresh>` tag with a `useEffect` + `setInterval` that polls the ticket status every 10 seconds.
-- [ ] 19.2 — Update the UI in-place when the status changes to PAID/ISSUED (no full reload).
+- [ ] 20.1 — Replace the `<meta refresh>` tag with a `useEffect` + `setInterval` that polls the ticket status every 10 seconds.
+- [ ] 20.2 — Update the UI in-place when the status changes to PAID/ISSUED (no full reload).
 
 ---
 
-### Step 20: Add "Save to Home Screen" Prompt
+### Step 21: Add "Save to Home Screen" Prompt
 
 **Why:** Documentation §5.1 requires prompting the user to install the PWA on the ticket page.
 
 **Tasks:**
-- [ ] 20.1 — Listen for the `beforeinstallprompt` event.
-- [ ] 20.2 — Show a banner on the ticket page encouraging the user to add the app to their home screen.
-- [ ] 20.3 — Dismiss the banner if already installed or dismissed.
+- [ ] 21.1 — Listen for the `beforeinstallprompt` event.
+- [ ] 21.2 — Show a banner on the ticket page encouraging the user to add the app to their home screen.
+- [ ] 21.3 — Dismiss the banner if already installed or dismissed.
 
 ---
 
-### Step 21: Final Build Verification & Cleanup
+### Step 22: Final Build Verification & Cleanup
 
 **Why:** Ensure both projects compile, tests pass, and the app is deployment-ready.
 
 **Tasks:**
-- [ ] 21.1 — Run `npm run build` in `/backend` — expect **0 errors**.
-- [ ] 21.2 — Run `npm run build` in `/frontend` — expect **0 errors**.
-- [ ] 21.3 — Run `npx prisma db seed` — expect successful seeding.
-- [ ] 21.4 — Run the full app locally (backend + frontend) and manually test:
+- [ ] 22.1 — Run `npm run build` in `/backend` — expect **0 errors**.
+- [ ] 22.2 — Run `npm run build` in `/frontend` — expect **0 errors**.
+- [ ] 22.3 — Run `npx prisma db seed` — expect successful seeding.
+- [ ] 22.4 — Run the full app locally (backend + frontend) and manually test:
   - Landing page loads
-  - Event page loads (no `lucide-material` crash)
-  - Login flow (send OTP → verify → JWT → redirect)
-  - Create event (organizer dashboard)
-  - Buy ticket (simulation mode)
-  - Scan ticket (QR scanner)
-  - View stats (organizer dashboard)
-- [ ] 21.5 — Update `backend/README.md` to reflect the actual NestJS setup.
-- [ ] 21.6 — Remove any remaining `console.log` debug statements from production code.
+  - Event page loads
+  - Login flow
+  - Create event
+  - Buy ticket
+  - Scan ticket
+  - View stats
+- [ ] 22.5 — Update `backend/README.md` to reflect the actual NestJS setup.
+- [ ] 22.6 — Remove any remaining `console.log` debug statements.
 
 ---
 

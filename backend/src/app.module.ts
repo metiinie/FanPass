@@ -8,9 +8,15 @@ import { EventsModule } from './events/events.module';
 import { TicketsModule } from './tickets/tickets.module';
 import { StaffModule } from './staff/staff.module';
 import { PaymentsModule } from './payments/payments.module';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 
 @Module({
   imports: [
+    ThrottlerModule.forRoot([{
+      ttl: 60000,
+      limit: 100,
+    }]),
     ScheduleModule.forRoot(),
     PrismaModule, 
     AuthModule, 
@@ -20,6 +26,12 @@ import { PaymentsModule } from './payments/payments.module';
     PaymentsModule
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+    AppService
+  ],
 })
 export class AppModule {}
