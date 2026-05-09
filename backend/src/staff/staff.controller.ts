@@ -10,31 +10,31 @@ export class StaffController {
   constructor(private readonly staffService: StaffService) {}
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ORGANIZER')
+  @Roles('ORGANIZER', 'SUPER_ADMIN')
   @Post('staff')
   async createStaff(@Request() req, @Body() body: CreateStaffDto) {
-    return this.staffService.createStaff(req.user.id, body);
+    return this.staffService.createStaff(req.user.id, req.user.role, body);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ORGANIZER')
+  @Roles('ORGANIZER', 'SUPER_ADMIN')
   @Get('staff')
   async getStaff(@Request() req) {
-    return this.staffService.getStaffByOrganizer(req.user.id);
+    return this.staffService.getStaffByOrganizer(req.user.id, req.user.role);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ORGANIZER')
+  @Roles('ORGANIZER', 'SUPER_ADMIN')
   @Post('events/:eventId/staff/:staffId')
   async assignStaff(@Request() req, @Param('eventId') eventId: string, @Param('staffId') staffId: string) {
-    return this.staffService.assignEvent(req.user.id, eventId, staffId);
+    return this.staffService.assignEvent(req.user.id, req.user.role, eventId, staffId);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ORGANIZER')
+  @Roles('ORGANIZER', 'SUPER_ADMIN')
   @Delete('events/:eventId/staff/:staffId')
   async unassignStaff(@Request() req, @Param('eventId') eventId: string, @Param('staffId') staffId: string) {
-    return this.staffService.unassignEvent(req.user.id, eventId, staffId);
+    return this.staffService.unassignEvent(req.user.id, req.user.role, eventId, staffId);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
