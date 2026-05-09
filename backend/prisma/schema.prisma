@@ -1,0 +1,132 @@
+// FanPass — Prisma Schema
+// Digital Ticketing & Event Entry Management
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Organizer {
+  id        String   @id @default(cuid())
+  phone     String   @unique
+  name      String
+  createdAt DateTime @default(now())
+  events    Event[]
+  staff     Staff[]
+}
+
+model Staff {
+  id          String       @id @default(cuid())
+  phone       String
+  name        String
+  organizer   Organizer    @relation(fields: [organizerId], references: [id])
+  organizerId String
+  assignments EventStaff[]
+  scanLogs    ScanLog[]
+  createdAt   DateTime     @default(now())
+}
+
+model Event {
+  id               String       @id @default(cuid())
+  organizer        Organizer    @relation(fields: [organizerId], references: [id])
+  organizerId      String
+  title            String
+  description      String?
+  venue            String
+  venueMapUrl      String?
+  dateTime         DateTime
+  ticketPrice      Int          // stored in smallest currency unit (santim)
+  currency         String       @default("ETB")
+  maxCapacity      Int
+  ticketsSold      Int          @default(0)
+  status           EventStatus  @default(DRAFT)
+  paymentMethods   String[]     // ["TELEBIRR", "CBE_BIRR", "MPESA"]
+  slug             String       @unique // used in public URL: /events/[slug]
+  createdAt        DateTime     @default(now())
+  tickets          Ticket[]
+  staffAssignments EventStaff[]
+  scanLogs         ScanLog[]
+}
+
+enum EventStatus {
+  DRAFT
+  ACTIVE
+  SOLD_OUT
+  CLOSED
+  CANCELLED
+}
+
+model Ticket {
+  id          String       @id @default(cuid())
+  event       Event        @relation(fields: [eventId], references: [id])
+  eventId     String
+  buyerPhone  String
+  buyerName   String?
+  qrToken     String?      @unique // signed JWT — nullable until payment confirmed
+  status      TicketStatus @default(PENDING)
+  issuedAt    DateTime     @default(now())
+  scannedAt   DateTime?
+  scanLog     ScanLog?
+  transaction Transaction?
+}
+
+enum TicketStatus {
+  PENDING
+  PAID
+  ISSUED
+  SCANNED
+  EXPIRED
+  REFUNDED
+}
+
+model Transaction {
+  id             String    @id @default(cuid())
+  ticket         Ticket    @relation(fields: [ticketId], references: [id])
+  ticketId       String    @unique
+  provider       String    // "TELEBIRR" | "CBE_BIRR" | "MPESA"
+  amount         Int
+  currency       String
+  providerRef    String?   // transaction ID from payment provider
+  status         String    // "PENDING" | "CONFIRMED" | "FAILED"
+  webhookPayload Json?
+  verifiedAt     DateTime?
+  createdAt      DateTime  @default(now())
+}
+
+model EventStaff {
+  event   Event  @relation(fields: [eventId], references: [id])
+  eventId String
+  staff   Staff  @relation(fields: [staffId], references: [id])
+  staffId String
+
+  @@id([eventId, staffId])
+}
+
+model ScanLog {
+  id         String   @id @default(cuid())
+  ticket     Ticket   @relation(fields: [ticketId], references: [id])
+  ticketId   String   @unique
+  event      Event    @relation(fields: [eventId], references: [id])
+  eventId    String
+  staff      Staff    @relation(fields: [staffId], references: [id])
+  staffId    String
+  result     String   // "VALID" | "ALREADY_USED" | "INVALID" | "WRONG_EVENT"
+  scannedAt  DateTime @default(now())
+  deviceInfo String?
+}
+
+model OtpCode {
+  id        String   @id @default(cuid())
+  phone     String
+  code      String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([phone, code])
+}

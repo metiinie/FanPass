@@ -1,0 +1,109 @@
+import { Injectable, BadRequestException, ConflictException, UnauthorizedException } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import * as jwt from 'jsonwebtoken';
+
+@Injectable()
+export class TicketsService {
+  private readonly JWT_SECRET = process.env.TICKET_JWT_SECRET || 'ticket-secret-key-999';
+
+  constructor(private readonly prisma: PrismaService) {}
+
+  async initiateTicket(data: any) {
+    return await this.prisma.$transaction(async (tx) => {
+      const event = await tx.event.findUnique({
+        where: { id: data.eventId },
+      });
+
+      if (!event || event.status !== 'ACTIVE') {
+        throw new BadRequestException('Event is not active or not found');
+      }
+
+      if (event.ticketsSold >= event.maxCapacity) {
+        throw new BadRequestException('Event is sold out');
+      }
+
+      // Create ticket
+      const ticket = await tx.ticket.create({
+        data: {
+          eventId: data.eventId,
+          buyerPhone: data.buyerPhone,
+          buyerName: data.buyerName,
+          status: 'PENDING',
+        },
+      });
+
+      // Create transaction
+      const transaction = await tx.transaction.create({
+        data: {
+          ticketId: ticket.id,
+          amount: event.ticketPrice,
+          currency: event.currency,
+          status: 'PENDING',
+          provider: data.paymentMethod || 'TELEBIRR',
+        },
+      });
+
+      // Increment sold count (atomic hold)
+      await tx.event.update({
+        where: { id: data.eventId },
+        data: { ticketsSold: { increment: 1 } },
+      });
+
+      return { ticket, transaction };
+    });
+  }
+
+  async validateTicket(eventId: string, staffId: string, token: string) {
+    try {
+      const decoded = jwt.verify(token, this.JWT_SECRET) as any;
+
+      if (decoded.eventId !== eventId) {
+        throw new UnauthorizedException('Ticket not valid for this event');
+      }
+
+      return await this.prisma.$transaction(async (tx) => {
+        const ticket = await tx.ticket.findUnique({
+          where: { id: decoded.ticketId },
+        });
+
+        if (!ticket) throw new BadRequestException('Ticket not found');
+        if (ticket.status === 'SCANNED') throw new ConflictException('Ticket already scanned');
+        if (ticket.status !== 'ISSUED') throw new BadRequestException('Ticket not valid for entry');
+
+        // Mark as scanned
+        const updatedTicket = await tx.ticket.update({
+          where: { id: ticket.id },
+          data: { status: 'SCANNED' },
+        });
+
+        // Log scan
+        await tx.scanLog.create({
+          data: {
+            ticketId: ticket.id,
+            eventId: eventId,
+            staffId: staffId,
+            result: 'VALID',
+          },
+        });
+
+        return { success: true, ticket: updatedTicket };
+      });
+    } catch (error) {
+      if (error instanceof jwt.JsonWebTokenError) {
+        throw new UnauthorizedException('Invalid ticket token');
+      }
+      throw error;
+    }
+  }
+
+  signTicketToken(ticketId: string, eventId: string) {
+    return jwt.sign({ ticketId, eventId }, this.JWT_SECRET);
+  }
+
+  async getTicket(ticketId: string) {
+    return this.prisma.ticket.findUnique({
+      where: { id: ticketId },
+      include: { event: true, transaction: true },
+    });
+  }
+}

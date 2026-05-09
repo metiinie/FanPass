@@ -1,0 +1,21 @@
+{
+  "name": "FanPass",
+  "short_name": "FanPass",
+  "description": "Digital Ticketing & Event Entry Management",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0F1A14",
+  "theme_color": "#1A7A4A",
+  "icons": [
+    {
+      "src": "/icons/192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
