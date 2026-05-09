@@ -28,4 +28,11 @@ export class TicketsController {
   async validate(@Request() req, @Body() body: ValidateTicketDto) {
     return this.ticketsService.validateTicket(body.eventId, req.user, body.token);
   }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ORGANIZER', 'SUPER_ADMIN')
+  @Post(':id/refund')
+  async refund(@Request() req, @Param('id') id: string) {
+    return this.ticketsService.refundTicket(id, req.user);
+  }
 }

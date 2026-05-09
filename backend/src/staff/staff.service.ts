@@ -112,4 +112,19 @@ export class StaffService {
 
     return staff.assignments.filter((a) => a.event.status === 'ACTIVE');
   }
+
+  async getMyScans(staffId: string) {
+    const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000);
+    return this.prisma.scanLog.findMany({
+      where: {
+        staffId,
+        scannedAt: { gt: twelveHoursAgo },
+      },
+      include: {
+        event: { select: { title: true } },
+        ticket: { select: { buyerPhone: true, buyerName: true } },
+      },
+      orderBy: { scannedAt: 'desc' },
+    });
+  }
 }

@@ -7,6 +7,7 @@ import { SCAN_RESULT_LABELS } from "@/lib/constants";
 import { Users, Ticket, Wallet, Activity, CheckCircle2, UserPlus, StopCircle, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { getSession } from "next-auth/react";
+import { toast } from "sonner";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3001";
 
@@ -81,6 +82,32 @@ export default function EventDashboardPage({ params }: { params: { eventId: stri
     } catch (err) {
       console.error(err);
       alert("Failed to end event");
+    }
+  };
+
+  const handleRefund = async (ticketId: string) => {
+    if (!confirm("Are you sure you want to refund this ticket? This action cannot be undone.")) {
+      return;
+    }
+
+    try {
+      const session = await getSession();
+      const res = await fetch(`${BACKEND_URL}/tickets/${ticketId}/refund`, {
+        method: "POST",
+        headers: { 
+          "Authorization": `Bearer ${session?.accessToken}`
+        },
+      });
+
+      if (res.ok) {
+        toast.success("Ticket refunded successfully");
+        fetchEventData();
+      } else {
+        const errorData = await res.json();
+        toast.error(errorData.message || "Failed to refund ticket");
+      }
+    } catch (err) {
+      toast.error("Refund failed");
     }
   };
 
@@ -224,12 +251,13 @@ export default function EventDashboardPage({ params }: { params: { eventId: stri
                 <th className="px-6 py-4">Attendee / Phone</th>
                 <th className="px-6 py-4">Scanner Staff</th>
                 <th className="px-6 py-4">Result</th>
+                <th className="px-6 py-4 text-right">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E5E7EB] bg-white">
               {stats.recentScans.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-6 py-8 text-center text-[#6B7280]">
+                  <td colSpan={5} className="px-6 py-8 text-center text-[#6B7280]">
                     No scans recorded yet. Activity will appear here in real-time.
                   </td>
                 </tr>
@@ -254,6 +282,16 @@ export default function EventDashboardPage({ params }: { params: { eventId: stri
                           {scan.result === "VALID" ? <CheckCircle2 className="w-3.5 h-3.5" /> : null}
                           {resultConfig.label}
                         </span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        {scan.result === "VALID" && (
+                          <button 
+                            onClick={() => handleRefund(scan.ticketId)}
+                            className="text-xs font-bold text-red-600 hover:underline"
+                          >
+                            Refund
+                          </button>
+                        )}
                       </td>
                     </tr>
                   );

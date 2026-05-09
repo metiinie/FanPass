@@ -17,6 +17,21 @@ export default function ScannerPage() {
   const [eventId, setEventId] = useState<string | null>(null);
   const [eventTitle, setEventTitle] = useState<string>("");
 
+  const [scans, setScans] = useState<any[]>([]);
+  
+  const fetchScans = async () => {
+    try {
+      const session = await getSession();
+      const res = await fetch(`${BACKEND_URL}/staff/me/scans`, {
+        headers: { "Authorization": `Bearer ${session?.accessToken}` },
+      });
+      const data = await res.json();
+      if (data.success) setScans(data.data);
+    } catch (error) {
+      console.error("Failed to fetch scans:", error);
+    }
+  };
+
   useEffect(() => {
     const fetchAssignments = async () => {
       try {
@@ -43,6 +58,7 @@ export default function ScannerPage() {
     };
 
     fetchAssignments();
+    fetchScans();
   }, [router]);
 
   const handleScan = useCallback(async (token: string) => {
@@ -91,6 +107,7 @@ export default function ScannerPage() {
           buyerName: data.ticket.buyerName,
           buyerPhone: data.ticket.buyerPhone,
         });
+        fetchScans();
         return true;
       } catch (error) {
         console.error(`Attempt ${attempts + 1} failed:`, error);
@@ -170,14 +187,35 @@ export default function ScannerPage() {
       </main>
 
       {/* Result Overlay */}
-      {scanResult && (
-        <ScanResult 
-          result={scanResult.result}
-          buyerName={scanResult.buyerName}
-          buyerPhone={scanResult.buyerPhone}
-          onClose={handleCloseResult}
         />
       )}
+
+      {/* Recent Scans Drawer / List */}
+      <div className="bg-white border-t border-[#E5E7EB] mt-auto">
+        <div className="p-4 border-b border-[#E5E7EB] flex items-center justify-between">
+          <h3 className="font-bold text-sm text-[#111827] uppercase tracking-wider">Session History</h3>
+          <span className="text-xs bg-gray-100 px-2 py-0.5 rounded text-[#6B7280]">{scans.length} scans</span>
+        </div>
+        <div className="max-h-48 overflow-y-auto">
+          {scans.length === 0 ? (
+            <div className="p-8 text-center text-sm text-[#6B7280]">No scans in this session yet</div>
+          ) : (
+            <div className="divide-y divide-gray-50">
+              {scans.map((s) => (
+                <div key={s.id} className="p-4 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-bold text-[#111827]">{s.ticket.buyerPhone}</p>
+                    <p className="text-[10px] text-[#6B7280]">{new Date(s.scannedAt).toLocaleTimeString()}</p>
+                  </div>
+                  <div className="px-2 py-1 rounded-md bg-green-50 text-green-700 text-[10px] font-bold uppercase">
+                    {s.result}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

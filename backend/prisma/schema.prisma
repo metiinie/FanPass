@@ -140,3 +140,13 @@ model OtpCode {
 
   @@index([phone, code])
 }
+
+model PlatformSettings {
+  id                String   @id @default("global")
+  telebirrAppId     String?
+  telebirrAppKey    String?
+  telebirrSecret    String?
+  telebirrShortCode String?
+  commissionRate    Float    @default(0.1) // 10%
+  updatedAt         DateTime @updatedAt
+}

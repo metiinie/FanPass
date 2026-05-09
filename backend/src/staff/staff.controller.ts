@@ -43,4 +43,11 @@ export class StaffController {
   async getMyAssignments(@Request() req) {
     return this.staffService.getMyAssignments(req.user.id);
   }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('STAFF')
+  @Get('staff/me/scans')
+  async getMyScans(@Request() req) {
+    return this.staffService.getMyScans(req.user.id);
+  }
 }

@@ -86,4 +86,74 @@ export class AdminController {
       data: events,
     };
   }
+
+  @Get('tickets')
+  async getAllTickets() {
+    const tickets = await this.prisma.ticket.findMany({
+      include: {
+        event: { select: { title: true } },
+        transaction: true,
+      },
+      orderBy: { issuedAt: 'desc' },
+      take: 100,
+    });
+
+    return {
+      success: true,
+      data: tickets,
+    };
+  }
+
+  @Get('transactions')
+  async getAllTransactions() {
+    const transactions = await this.prisma.transaction.findMany({
+      include: {
+        ticket: {
+          include: {
+            event: { select: { title: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+    });
+
+    return {
+      success: true,
+      data: transactions,
+    };
+  }
+
+  @Get('settings')
+  async getSettings() {
+    let settings = await this.prisma.platformSettings.findUnique({
+      where: { id: 'global' },
+    });
+
+    if (!settings) {
+      settings = await this.prisma.platformSettings.create({
+        data: { id: 'global' },
+      });
+    }
+
+    return {
+      success: true,
+      data: settings,
+    };
+  }
+
+  @Patch('settings')
+  async updateSettings(@Body() data: any) {
+    const settings = await this.prisma.platformSettings.upsert({
+      where: { id: 'global' },
+      update: data,
+      create: { ...data, id: 'global' },
+    });
+
+    return {
+      success: true,
+      message: 'Platform settings updated successfully',
+      data: settings,
+    };
+  }
 }

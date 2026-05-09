@@ -128,4 +128,50 @@ export class TicketsService {
       include: { event: true, transaction: true },
     });
   }
+
+  async refundTicket(ticketId: string, user: any) {
+    const ticket = await this.prisma.ticket.findUnique({
+      where: { id: ticketId },
+      include: { event: true, transaction: true },
+    });
+
+    if (!ticket) {
+      throw new NotFoundException('Ticket not found');
+    }
+
+    // RBAC: Only SUPER_ADMIN or the ORGANIZER who owns the event
+    if (user.role !== 'SUPER_ADMIN') {
+      if (user.role !== 'ORGANIZER' || ticket.event.organizerId !== user.id) {
+        throw new UnauthorizedException('You do not have permission to refund this ticket');
+      }
+    }
+
+    if (ticket.status === 'REFUNDED') {
+      throw new BadRequestException('Ticket is already refunded');
+    }
+
+    return await this.prisma.$transaction(async (tx) => {
+      // 1. Update ticket status
+      const updatedTicket = await tx.ticket.update({
+        where: { id: ticketId },
+        data: { status: 'REFUNDED' },
+      });
+
+      // 2. Update transaction status
+      if (ticket.transaction) {
+        await tx.transaction.update({
+          where: { id: ticket.transaction.id },
+          data: { status: 'FAILED' }, // Or add a REFUNDED status to Transaction if possible
+        });
+      }
+
+      // 3. Decrement ticketsSold in event
+      await tx.event.update({
+        where: { id: ticket.eventId },
+        data: { ticketsSold: { decrement: 1 } },
+      });
+
+      return updatedTicket;
+    });
+  }
 }
