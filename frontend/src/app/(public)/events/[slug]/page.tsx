@@ -10,8 +10,7 @@ export const revalidate = 30; // ISR cache revalidation every 30 seconds
 export default async function EventPage({ params }: { params: { slug: string } }) {
   let event: any = null;
   try {
-    const res = await fetchBackend(`/events/public/${params.slug}`, { requireAuth: false });
-    event = await res.json();
+    event = await fetchBackend(`/events/public/${params.slug}`, { requireAuth: false });
   } catch (error) {
     console.error("Failed to fetch event:", error);
     notFound();
