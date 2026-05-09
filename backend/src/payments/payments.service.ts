@@ -79,7 +79,7 @@ export class PaymentsService {
     const transactionId = ussdData.outTradeNo;
     const tradeStatus = ussdData.tradeStatus;
 
-    return await this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const transaction = await tx.transaction.findUnique({
         where: { id: transactionId },
         include: { ticket: { include: { event: true } } },
