@@ -6,6 +6,7 @@ import { TICKET_STATUS_LABELS } from "@/lib/constants";
 import { MapPin, Calendar, CheckCircle2, Ticket as TicketIcon } from "lucide-react";
 import Image from "next/image";
 import QRCode from "qrcode";
+import InstallPrompt from "@/components/pwa/InstallPrompt";
 
 interface TicketClientProps {
   initialTicket: any;
@@ -164,6 +165,7 @@ export default function TicketClient({ initialTicket }: TicketClientProps) {
           </p>
         )}
       </div>
+      <InstallPrompt />
     </div>
   );
 }
