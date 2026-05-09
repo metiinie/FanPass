@@ -8,8 +8,7 @@ export const revalidate = 60; // Revalidate every minute
 export default async function Home() {
   let activeEvents = [];
   try {
-    const res = await fetchBackend("/events/public", { requireAuth: false });
-    activeEvents = await res.json();
+    activeEvents = await fetchBackend("/events/public", { requireAuth: false });
   } catch (error) {
     console.error("Failed to fetch events:", error);
   }
