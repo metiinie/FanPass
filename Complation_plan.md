@@ -420,13 +420,20 @@ These steps improve security, compliance with rule.md, and overall polish. They 
 
 ---
 
-### Step 20: Improve Ticket Page Polling
+### Step 20: Improve Ticket Page Polling ✅ DONE
 
 **Why:** The pending ticket page uses `<meta http-equiv="refresh" content="10">` instead of JavaScript polling. This is crude and causes full page reloads.
 
 **Tasks:**
-- [ ] 20.1 — Replace the `<meta refresh>` tag with a `useEffect` + `setInterval` that polls the ticket status every 10 seconds.
-- [ ] 20.2 — Update the UI in-place when the status changes to PAID/ISSUED (no full reload).
+- [x] 20.1 — Replaced the `<meta refresh>` tag with a client-side `TicketClient` component that uses `setInterval` for polling.
+- [x] 20.2 — Implemented smooth, in-place UI updates when the ticket status changes from PENDING to ISSUED (no full page reload).
+- [x] 20.3 — Added subtle entrance animations (zoom-in/fade-in) when the QR code is generated upon successful payment.
+
+**Affected Files:**
+| File | Change |
+|------|--------|
+| `frontend/src/app/(public)/tickets/[ticketId]/page.tsx` | Refactored to Server Component wrapper |
+| `frontend/src/app/(public)/tickets/[ticketId]/TicketClient.tsx` | [NEW] Polling and reactive UI logic |
 
 ---
 
