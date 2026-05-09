@@ -2,6 +2,7 @@ import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { TicketsService } from '../tickets/tickets.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class PaymentsService {
@@ -10,6 +11,7 @@ export class PaymentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly ticketsService: TicketsService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   @Cron(CronExpression.EVERY_5_MINUTES)
@@ -119,8 +121,23 @@ export class PaymentsService {
         },
       });
 
-      return { success: true, ticketId: transaction.ticketId };
+      return { 
+        success: true, 
+        ticketId: transaction.ticketId, 
+        buyerPhone: transaction.ticket.buyerPhone 
+      };
     });
+
+    if (result.success && result.ticketId && result.buyerPhone) {
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      const ticketUrl = `${frontendUrl}/tickets/${result.ticketId}`;
+      
+      this.notificationsService.sendTicketSms(result.buyerPhone, ticketUrl).catch((err) => {
+        this.logger.error(`Failed to send SMS for ticket ${result.ticketId}: ${err.message}`);
+      });
+    }
+
+    return result;
   }
 
   async simulateSuccess(transactionId: string) {

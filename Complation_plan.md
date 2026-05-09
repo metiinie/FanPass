@@ -251,27 +251,37 @@ These steps complete features that are **partially built or missing**. The app r
 - [x] 11.2 — Created a cron job in `PaymentsService` that runs every 5 minutes.
 - [x] 11.3 — The cron job finds all tickets with `status = PENDING` and `issuedAt < now - 30 minutes`, then updates them to `EXPIRED`.
 - [x] 11.4 — Associated `PENDING` transactions are updated to `FAILED`.
-- [x] 11.5 — Released the `ticketsSold` count on the event (decrement) so the capacity is freed.
-- [x] 11.6 — Verified successful backend build.
+- [x] 11.5 — Released the `ticketsSold` count on the event (decrement) so the capacity is fre| `backend/src/payments/payments.service.ts` | Added `@Cron()` handlePaymentTimeouts method |
+
+---
+
+### Step 12: Standardize Event Status Transitions ✅ DONE
+
+**Why:** Documentation §12 requires specific business rules for transitioning event states to prevent broken public pages.
+
+**Tasks:**
+- [x] 12.1 — Implemented transition logic in `EventsService.updateEventStatus`.
+- [x] 12.2 — Enforced: **ACTIVE** state requires a ticket price > 0 and a valid venue.
+- [x] 12.3 — Enforced: **SOLD_OUT** state only allowed if `ticketsSold >= maxCapacity`.
+- [x] 12.4 — Verified backend build succeeded with new validation rules.
 
 **Affected Files:**
 | File | Change |
 |------|--------|
-| `backend/src/app.module.ts` | Imported `ScheduleModule.forRoot()` |
-| `backend/src/payments/payments.service.ts` | Added `@Cron()` handlePaymentTimeouts method |
+| `backend/src/events/events.service.ts` | Added transition validation logic |
 
 ---
 
-### Step 12: Connect SMS Delivery After Successful Payment
+### Step 13: Connect SMS Delivery After Successful Payment
 
 **Why:** Documentation says "Send ticket URL to buyer via SMS" after webhook confirmation. Not connected.
 
 **Tasks:**
-- [ ] 12.1 — Create `backend/src/notifications/notifications.module.ts` and `notifications.service.ts`.
-- [ ] 12.2 — Implement `sendTicketSms(phone, ticketUrl)` — use Africa's Talking in production, console.log in simulation mode.
-- [ ] 12.3 — In `PaymentsService.handleWebhook()`, after confirming payment and updating ticket status, call `NotificationsService.sendTicketSms()`.
-- [ ] 12.4 — Add `AT_API_KEY`, `AT_USERNAME`, `AT_SENDER_ID` to backend `.env`.
-- [ ] 12.5 — Test in simulation mode: buy ticket → webhook fires → console shows SMS with ticket URL.
+- [ ] 13.1 — Create `backend/src/notifications/notifications.module.ts` and `notifications.service.ts`.
+- [ ] 13.2 — Implement `sendTicketSms(phone, ticketUrl)` — use Africa's Talking in production, console.log in simulation mode.
+- [ ] 13.3 — In `PaymentsService.handleWebhook()`, after confirming payment and updating ticket status, call `NotificationsService.sendTicketSms()`.
+- [ ] 13.4 — Add `AT_API_KEY`, `AT_USERNAME`, `AT_SENDER_ID` to backend `.env`.
+- [ ] 13.5 — Test in simulation mode: buy ticket → webhook fires → console shows SMS with ticket URL.
 
 **Affected Files:**
 | File | Change |
@@ -284,17 +294,24 @@ These steps complete features that are **partially built or missing**. The app r
 
 ---
 
-### Step 13: Remove Duplicate Frontend Server Logic
+### Step 14: Remove Duplicate Frontend Server Logic
 
 **Why:** After the NestJS migration, `frontend/src/server/` still contains unused payment and ticket logic. This is dead code that causes confusion.
 
 **Tasks:**
-- [ ] 13.1 — Verify no frontend code imports from `frontend/src/server/payments/` or `frontend/src/server/tickets.ts`.
-- [ ] 13.2 — Delete `frontend/src/server/payments/` directory.
-- [ ] 13.3 — Delete `frontend/src/server/tickets.ts`.
-- [ ] 13.4 — Delete `frontend/src/server/db.ts` (if it exists — it may not).
-- [ ] 13.5 — Keep only files that are still actively used (e.g., auth-related helpers).
-- [ ] 13.6 — Run `npm run build` in `/frontend` to verify nothing broke.
+- [ ] 14.1 — Verify no frontend code imports from `frontend/src/server/payments/` or `frontend/src/server/tickets.ts`.
+- [ ] 14.2 — Delete `frontend/src/server/payments/` directory.
+- [ ] 14.3 — Delete `frontend/src/server/tickets.ts`.
+- [ ] 14.4 — Delete `frontend/src/server/db.ts` (if it exists — it may not).
+- [ ] 14.5 — Keep only files that are still actively used (e.g., auth-related helpers).
+- [ ] 14.6 — Run `npm run build` in `/frontend` to verify nothing broke.
+
+**Affected Files:**
+| File | Change |
+|------|--------|
+| `frontend/src/server/payments/` | DELETE |
+| `frontend/src/server/tickets.ts` | DELETE |
+| `frontend/src/server/db.ts` | DELETE (if exists) |ing broke.
 
 **Affected Files:**
 | File | Change |
