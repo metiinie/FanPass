@@ -14,8 +14,7 @@ export default async function DashboardPage() {
 
   let events = [];
   try {
-    const res = await fetchBackend("/events");
-    events = await res.json();
+    events = await fetchBackend("/events");
   } catch (error) {
     console.error("Dashboard: Error fetching events", error);
   }

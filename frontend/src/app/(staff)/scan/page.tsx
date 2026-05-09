@@ -32,10 +32,10 @@ export default function ScannerPage() {
           },
         });
 
-        const data = await res.json();
-        if (data.length > 0) {
-          setEventId(data[0].eventId);
-          setEventTitle(data[0].event.title);
+        const json = await res.json();
+        if (json.success && json.data && json.data.length > 0) {
+          setEventId(json.data[0].eventId);
+          setEventTitle(json.data[0].event.title);
         }
       } catch (error) {
         console.error("Failed to fetch assignments:", error);
@@ -64,18 +64,20 @@ export default function ScannerPage() {
           body: JSON.stringify({ token, eventId }),
         });
 
-        const data = await res.json();
+        const json = await res.json();
         
-        if (!res.ok) {
+        if (!res.ok || json.success === false) {
+          const data = json.data || {};
           // If it's a known error (already used, wrong event), don't retry
-          if (data.code === 'ALREADY_USED' || data.code === 'WRONG_EVENT') {
-            setScanResult({ result: data.code });
+          if (json.message === 'ALREADY_USED' || json.message === 'WRONG_EVENT') {
+            setScanResult({ result: json.message as any });
             return true;
           }
           // Otherwise, it might be a network/server issue
-          throw new Error(data.message || "Validation failed");
+          throw new Error(json.message || "Validation failed");
         }
 
+        const data = json.data;
         setScanResult({
           result: "VALID",
           buyerName: data.ticket.buyerName,
