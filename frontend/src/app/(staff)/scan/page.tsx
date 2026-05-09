@@ -67,14 +67,22 @@ export default function ScannerPage() {
         const json = await res.json();
         
         if (!res.ok || json.success === false) {
-          const data = json.data || {};
-          // If it's a known error (already used, wrong event), don't retry
-          if (json.message === 'ALREADY_USED' || json.message === 'WRONG_EVENT') {
-            setScanResult({ result: json.message as any });
+          const msg = json.message;
+          // If it's a known non-transient error, don't retry
+          if (msg === 'Ticket already scanned') {
+            setScanResult({ result: 'ALREADY_USED' });
+            return true;
+          }
+          if (msg === 'Ticket not valid for this event') {
+            setScanResult({ result: 'WRONG_EVENT' });
+            return true;
+          }
+          if (msg === 'Invalid ticket token' || msg === 'Ticket not found' || msg === 'Ticket not valid for entry') {
+            setScanResult({ result: 'INVALID' });
             return true;
           }
           // Otherwise, it might be a network/server issue
-          throw new Error(json.message || "Validation failed");
+          throw new Error(msg || "Validation failed");
         }
 
         const data = json.data;
