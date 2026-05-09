@@ -293,24 +293,22 @@ These steps complete features that are **partially built or missing**. The app r
 
 ---
 
-### Step 14: Remove Duplicate Frontend Server Logic
+### Step 14: Remove Duplicate Frontend Server Logic ✅ DONE
 
 **Why:** After the NestJS migration, `frontend/src/server/` still contains unused payment and ticket logic. This is dead code that causes confusion.
 
 **Tasks:**
-- [ ] 14.1 — Verify no frontend code imports from `frontend/src/server/payments/` or `frontend/src/server/tickets.ts`.
-- [ ] 14.2 — Delete `frontend/src/server/payments/` directory.
-- [ ] 14.3 — Delete `frontend/src/server/tickets.ts`.
-- [ ] 14.4 — Delete `frontend/src/server/db.ts` (if it exists — it may not).
-- [ ] 14.5 — Keep only files that are still actively used (e.g., auth-related helpers).
-- [ ] 14.6 — Run `npm run build` in `/frontend` to verify nothing broke.
+- [x] 14.1 — Verified no frontend code imports from `frontend/src/server/payments/` or `frontend/src/server/tickets.ts`.
+- [x] 14.2 — Deleted `frontend/src/server/payments/` directory.
+- [x] 14.3 — Deleted `frontend/src/server/tickets.ts`.
+- [x] 14.4 — Verified only `auth.ts` remains in the server directory as a shared utility.
+- [x] 14.5 — Verified successful production build of the frontend.
 
 **Affected Files:**
 | File | Change |
 |------|--------|
 | `frontend/src/server/payments/` | DELETE |
-| `frontend/src/server/tickets.ts` | DELETE |
-| `frontend/src/server/db.ts` | DELETE (if exists) |ing broke.
+| `frontend/src/server/tickets.ts` | DELETE |ing broke.
 
 **Affected Files:**
 | File | Change |
