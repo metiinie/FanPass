@@ -31,4 +31,10 @@ export class AuthController {
   async verifyOtp(@Body() dto: VerifyOtpDto) {
     return this.authService.verifyOtp(dto.phone, dto.code);
   }
+
+  @Post('dev-login')
+  @HttpCode(HttpStatus.OK)
+  async devLogin(@Body() dto: { email: string; pass: string }) {
+    return this.authService.devLogin(dto.email, dto.pass);
+  }
 }

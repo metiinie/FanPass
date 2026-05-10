@@ -134,4 +134,76 @@ export class AuthService {
 
     throw new UnauthorizedException('Account not found for this phone number.');
   }
+
+  async devLogin(email: string, pass: string) {
+    if (pass !== '123456') {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    const emailToPhoneMap: Record<string, string> = {
+      'superawol@gmail.com': '+251918982161',
+      'influencer@gmail.com': '+251718280155',
+      'awolstaff@gmail.com': '+251918982122',
+    };
+
+    const phone = emailToPhoneMap[email];
+    if (!phone) {
+      throw new UnauthorizedException('Email not recognized in dev mode');
+    }
+
+    // Bypass OTP check and directly resolve user payload
+    const superAdmin = await this.prisma.superAdmin.findUnique({
+      where: { phone },
+    });
+
+    if (superAdmin) {
+      const payload = {
+        id: superAdmin.id,
+        phone: superAdmin.phone,
+        name: superAdmin.name,
+        role: 'SUPER_ADMIN',
+      };
+      return {
+        user: payload,
+        accessToken: this.jwtService.sign(payload),
+      };
+    }
+
+    const influencer = await this.prisma.influencer.findUnique({
+      where: { phone },
+    });
+
+    if (influencer) {
+      const payload = {
+        id: influencer.id,
+        phone: influencer.phone,
+        name: influencer.name,
+        role: 'ORGANIZER',
+      };
+      return {
+        user: payload,
+        accessToken: this.jwtService.sign(payload),
+      };
+    }
+
+    const staff = await this.prisma.staff.findFirst({
+      where: { phone },
+    });
+
+    if (staff) {
+      const payload = {
+        id: staff.id,
+        phone: staff.phone,
+        name: staff.name,
+        role: 'STAFF',
+        organizerId: staff.organizerId,
+      };
+      return {
+        user: payload,
+        accessToken: this.jwtService.sign(payload),
+      };
+    }
+
+    throw new UnauthorizedException('User not found in DB');
+  }
 }

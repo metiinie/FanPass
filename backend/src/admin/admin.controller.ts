@@ -54,6 +54,60 @@ export class AdminController {
     return { success: true, data: influencers };
   }
 
+  @Post('influencers')
+  async createInfluencer(@Body() data: any) {
+    const slug = data.slug || data.name.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
+    
+    // Check if phone or slug already exists
+    const existing = await this.prisma.influencer.findFirst({
+      where: { OR: [{ phone: data.phone }, { slug }] }
+    });
+
+    if (existing) {
+      return { 
+        success: false, 
+        message: existing.phone === data.phone ? 'Phone number already registered.' : 'Slug/Profile URL already taken.' 
+      };
+    }
+
+    const influencer = await this.prisma.influencer.create({
+      data: {
+        ...data,
+        slug,
+      },
+    });
+    return { success: true, message: 'Influencer onboarded.', data: influencer };
+  }
+
+  @Patch('influencers/:id')
+  async updateInfluencer(@Param('id') id: string, @Body() data: any) {
+    // If slug is updated, check for uniqueness
+    if (data.slug) {
+      const existing = await this.prisma.influencer.findFirst({
+        where: { slug: data.slug, id: { not: id } }
+      });
+      if (existing) {
+        return { success: false, message: 'Slug already taken.' };
+      }
+    }
+
+    const influencer = await this.prisma.influencer.update({
+      where: { id },
+      data,
+    });
+    return { success: true, message: 'Influencer profile updated.', data: influencer };
+  }
+
+  @Delete('influencers/:id')
+  async deleteInfluencer(@Param('id') id: string) {
+    // Soft delete as agreed
+    const influencer = await this.prisma.influencer.update({
+      where: { id },
+      data: { isActive: false },
+    });
+    return { success: true, message: 'Influencer account suspended.', data: influencer };
+  }
+
   @Patch('influencers/:id/status')
   async toggleInfluencerStatus(
     @Param('id') id: string,
