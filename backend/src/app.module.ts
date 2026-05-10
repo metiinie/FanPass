@@ -9,6 +9,7 @@ import { TicketsModule } from './tickets/tickets.module';
 import { StaffModule } from './staff/staff.module';
 import { PaymentsModule } from './payments/payments.module';
 import { AdminModule } from './admin/admin.module';
+import { InfluencersModule } from './influencers/influencers.module';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 
@@ -19,13 +20,14 @@ import { APP_GUARD } from '@nestjs/core';
       limit: 100,
     }]),
     ScheduleModule.forRoot(),
-    PrismaModule, 
-    AuthModule, 
-    EventsModule, 
-    TicketsModule, 
-    StaffModule, 
+    PrismaModule,
+    AuthModule,
+    EventsModule,
+    TicketsModule,
+    StaffModule,
     PaymentsModule,
-    AdminModule
+    AdminModule,
+    InfluencersModule,
   ],
   controllers: [AppController],
   providers: [
@@ -33,7 +35,7 @@ import { APP_GUARD } from '@nestjs/core';
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
     },
-    AppService
+    AppService,
   ],
 })
 export class AppModule {}

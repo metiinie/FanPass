@@ -36,4 +36,29 @@ export class CreateEventDto {
   @IsArray()
   @IsString({ each: true })
   paymentMethods: string[];
+
+  // Match-specific fields (all optional)
+  @IsString()
+  @IsOptional()
+  homeTeam?: string;
+
+  @IsString()
+  @IsOptional()
+  awayTeam?: string;
+
+  @IsString()
+  @IsOptional()
+  competition?: string;
+
+  @IsDateString()
+  @IsOptional()
+  matchKickoff?: string;
+
+  @IsString()
+  @IsOptional()
+  coverImage?: string;
+
+  @IsString()
+  @IsOptional()
+  city?: string;
 }

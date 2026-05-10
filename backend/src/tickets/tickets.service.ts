@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, ConflictException, UnauthorizedException } from '@nestjs/common';
+import { Injectable, BadRequestException, ConflictException, UnauthorizedException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import * as jwt from 'jsonwebtoken';
 
@@ -169,6 +169,12 @@ export class TicketsService {
       await tx.event.update({
         where: { id: ticket.eventId },
         data: { ticketsSold: { decrement: 1 } },
+      });
+
+      // 4. Decrement totalTicketsSold on the Influencer
+      await tx.influencer.update({
+        where: { id: ticket.event.organizerId },
+        data: { totalTicketsSold: { decrement: 1 } },
       });
 
       return updatedTicket;

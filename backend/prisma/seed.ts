@@ -1,106 +1,55 @@
-import { PrismaClient } from "@prisma/client";
-import * as jwt from "jsonwebtoken";
+import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
-const TICKET_JWT_SECRET = process.env.TICKET_JWT_SECRET || 'ticket-secret-key-999';
-
-function signTicketToken(ticketId: string, eventId: string): string {
-  return jwt.sign({ ticketId, eventId }, TICKET_JWT_SECRET);
-}
 
 async function main() {
-  console.log("Seeding database...");
+  console.log('🧹 Clearing existing data...');
+  await prisma.staff.deleteMany({});
+  await prisma.influencer.deleteMany({});
+  await prisma.superAdmin.deleteMany({});
+  await prisma.otpCode.deleteMany({});
 
-  // Clean up existing data to prevent unique constraint errors
-  await prisma.scanLog.deleteMany();
-  await prisma.transaction.deleteMany();
-  await prisma.ticket.deleteMany();
-  await prisma.eventStaff.deleteMany();
-  await prisma.staff.deleteMany();
-  await prisma.event.deleteMany();
-  await prisma.organizer.deleteMany();
-  await prisma.otpCode.deleteMany();
+  console.log('🌱 Starting seeding...');
 
-  // Create Organizer
-  const organizer = await prisma.organizer.create({
+  // 1. Create Super Admin
+  const superAdmin = await prisma.superAdmin.create({
     data: {
-      name: "Dawit Haile",
-      phone: "+251911000001",
+      phone: '+251918982161',
+      name: 'super_awol',
     },
   });
-  console.log(`Created Organizer: ${organizer.name}`);
+  console.log('✅ Super Admin created:', superAdmin.name);
 
-  // Create Event
-  const eventDateTime = new Date();
-  eventDateTime.setHours(eventDateTime.getHours() + 48); // 48 hours from now
-
-  const event = await prisma.event.create({
+  // 2. Create Influencer (formerly Organizer)
+  const influencer = await prisma.influencer.create({
     data: {
-      organizerId: organizer.id,
-      title: "EPL Match Night — Arsenal vs Man City",
-      venue: "Sky Lounge Hall, Bole",
-      dateTime: eventDateTime,
-      ticketPrice: 15000, // 150 ETB in santim
-      maxCapacity: 200,
-      status: "ACTIVE",
-      paymentMethods: ["TELEBIRR"],
-      slug: "epl-arsenal-man-city-01",
-      ticketsSold: 2,
+      phone: '+251718280155',
+      name: 'org_awol',
+      slug: 'org-awol',
+      bio: 'Football watch party host. Big events, bigger screens.',
+      teamSupported: 'Arsenal',
+      teamColor: '#EF0107',
+      isActive: true,
     },
   });
-  console.log(`Created Event: ${event.title}`);
+  console.log('✅ Influencer created:', influencer.name);
 
-  // Create Staff
+  // 3. Create Staff
   const staff = await prisma.staff.create({
     data: {
-      name: "Selam Tadesse",
-      phone: "+251922000002",
-      organizerId: organizer.id,
-      assignments: {
-        create: {
-          eventId: event.id,
-        },
-      },
+      phone: '+251918982122',
+      name: 'staff_awol',
+      organizerId: influencer.id,
     },
   });
-  console.log(`Created Staff: ${staff.name} assigned to event.`);
+  console.log('✅ Staff created:', staff.name);
 
-  // Create Two Tickets
-  const ticket1 = await prisma.ticket.create({
-    data: {
-      eventId: event.id,
-      buyerPhone: "+251933000003",
-      buyerName: "Abebe Kebede",
-      status: "ISSUED",
-    },
-  });
-  // Update with QR Token
-  await prisma.ticket.update({
-    where: { id: ticket1.id },
-    data: { qrToken: signTicketToken(ticket1.id, event.id) },
-  });
-
-  const ticket2 = await prisma.ticket.create({
-    data: {
-      eventId: event.id,
-      buyerPhone: "+251944000004",
-      buyerName: "Chala Lema",
-      status: "ISSUED",
-    },
-  });
-  // Update with QR Token
-  await prisma.ticket.update({
-    where: { id: ticket2.id },
-    data: { qrToken: signTicketToken(ticket2.id, event.id) },
-  });
-  
-  console.log(`Created 2 test tickets for the event.`);
-  console.log("Database seeded successfully!");
+  console.log('✨ Seeding finished successfully!');
 }
 
 main()
   .catch((e) => {
-    console.error(e);
+    console.error('❌ Seeding failed:', e);
     process.exit(1);
   })
   .finally(async () => {

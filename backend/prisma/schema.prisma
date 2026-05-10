@@ -1,5 +1,5 @@
 // FanPass — Prisma Schema
-// Digital Ticketing & Event Entry Management
+// Football Influencer Watch Party Platform
 
 generator client {
   provider = "prisma-client-js"
@@ -10,14 +10,32 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Organizer {
-  id        String   @id @default(cuid())
-  phone     String   @unique
-  name      String
-  isActive  Boolean  @default(true) // Support for suspension
-  createdAt DateTime @default(now())
-  events    Event[]
-  staff     Staff[]
+// ============================================================
+// IMPORTANT: @@map("Organizer") keeps the underlying DB table
+// name unchanged. Only the Prisma model name changes to Influencer.
+// This is a SAFE migration — no data loss on the live database.
+// ============================================================
+model Influencer {
+  id               String      @id @default(cuid())
+  phone            String      @unique
+  name             String
+  slug             String?     @unique // used in /influencers/[slug]
+  bio              String?
+  profilePhoto     String?     // Cloudinary URL
+  teamSupported    String?     // e.g. "Arsenal", "Man United"
+  teamColor        String?     // hex color e.g. "#EF0107" for Arsenal
+  tiktokUrl        String?
+  instagramUrl     String?
+  telegramUrl      String?
+  isVerified       Boolean     @default(false)
+  isActive         Boolean     @default(true)
+  totalTicketsSold Int         @default(0)
+  createdAt        DateTime    @default(now())
+  events           Event[]
+  staff            Staff[]
+  fanFollows       FanFollow[]
+
+  @@map("Organizer") // safe: keeps existing DB table name
 }
 
 model SuperAdmin {
@@ -28,19 +46,21 @@ model SuperAdmin {
 }
 
 model Staff {
-  id          String       @id @default(cuid())
-  phone       String
-  name        String
-  organizer   Organizer    @relation(fields: [organizerId], references: [id])
-  organizerId String
-  assignments EventStaff[]
-  scanLogs    ScanLog[]
-  createdAt   DateTime     @default(now())
+  id           String       @id @default(cuid())
+  phone        String
+  name         String
+  influencer   Influencer   @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+  organizerId  String
+  assignments  EventStaff[]
+  scanLogs     ScanLog[]
+  createdAt    DateTime     @default(now())
+
+  @@map("Staff")
 }
 
 model Event {
   id               String       @id @default(cuid())
-  organizer        Organizer    @relation(fields: [organizerId], references: [id])
+  influencer       Influencer   @relation(fields: [organizerId], references: [id], onDelete: Cascade)
   organizerId      String
   title            String
   description      String?
@@ -55,6 +75,15 @@ model Event {
   paymentMethods   String[]     // ["TELEBIRR", "CBE_BIRR", "MPESA"]
   slug             String       @unique // used in public URL: /events/[slug]
   createdAt        DateTime     @default(now())
+
+  // Match-specific fields
+  homeTeam         String?      // e.g. "Arsenal"
+  awayTeam         String?      // e.g. "Man City"
+  competition      String?      // e.g. "Premier League", "Champions League"
+  matchKickoff     DateTime?    // actual match kick-off time
+  coverImage       String?      // Cloudinary URL for event cover
+  city             String?      // city for filtering, e.g. "Addis Ababa"
+
   tickets          Ticket[]
   staffAssignments EventStaff[]
   scanLogs         ScanLog[]
@@ -70,7 +99,7 @@ enum EventStatus {
 
 model Ticket {
   id          String       @id @default(cuid())
-  event       Event        @relation(fields: [eventId], references: [id])
+  event       Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
   eventId     String
   buyerPhone  String
   buyerName   String?
@@ -93,7 +122,7 @@ enum TicketStatus {
 
 model Transaction {
   id             String    @id @default(cuid())
-  ticket         Ticket    @relation(fields: [ticketId], references: [id])
+  ticket         Ticket    @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   ticketId       String    @unique
   provider       String    // "TELEBIRR" | "CBE_BIRR" | "MPESA"
   amount         Int
@@ -106,26 +135,26 @@ model Transaction {
 }
 
 model EventStaff {
-  event   Event  @relation(fields: [eventId], references: [id])
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
   eventId String
-  staff   Staff  @relation(fields: [staffId], references: [id])
+  staff   Staff  @relation(fields: [staffId], references: [id], onDelete: Cascade)
   staffId String
 
   @@id([eventId, staffId])
 }
 
 model ScanLog {
-  id            String   @id @default(cuid())
-  ticket        Ticket   @relation(fields: [ticketId], references: [id])
-  ticketId      String   @unique
-  event         Event    @relation(fields: [eventId], references: [id])
+  id            String     @id @default(cuid())
+  ticket        Ticket     @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  ticketId      String     @unique
+  event         Event      @relation(fields: [eventId], references: [id], onDelete: Cascade)
   eventId       String
-  staff         Staff?   @relation(fields: [staffId], references: [id])
+  staff         Staff?     @relation(fields: [staffId], references: [id])
   staffId       String?
-  scannedById   String   // Can be staffId or organizerId
-  scannedByRole String   // "STAFF" | "ORGANIZER" | "SUPER_ADMIN"
-  result        String   // "VALID" | "ALREADY_USED" | "INVALID" | "WRONG_EVENT"
-  scannedAt     DateTime @default(now())
+  scannedById   String     // Can be staffId or organizerId
+  scannedByRole String     // "STAFF" | "ORGANIZER" | "SUPER_ADMIN"
+  result        String     // "VALID" | "ALREADY_USED" | "INVALID" | "WRONG_EVENT"
+  scannedAt     DateTime   @default(now())
   deviceInfo    String?
 }
 
@@ -149,4 +178,15 @@ model PlatformSettings {
   telebirrShortCode String?
   commissionRate    Float    @default(0.1) // 10%
   updatedAt         DateTime @updatedAt
+}
+
+// Phase 2: Fan follow / favourites (optional)
+model FanFollow {
+  id           String     @id @default(cuid())
+  fanPhone     String
+  influencer   Influencer @relation(fields: [influencerId], references: [id], onDelete: Cascade)
+  influencerId String
+  createdAt    DateTime   @default(now())
+
+  @@unique([fanPhone, influencerId])
 }

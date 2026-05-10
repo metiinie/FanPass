@@ -14,16 +14,25 @@ export class StaffService {
       throw new ConflictException('Staff with this phone already exists');
     }
 
-    // If Super Admin, they must provide an organizerId in data, or it defaults to null (needs schema update)
-    // For now, we assume they specify an organizerId if they are Super Admin
-    const targetOrganizerId = userRole === 'SUPER_ADMIN' ? (data.organizerId || organizerId) : organizerId;
+    const targetOrganizerId =
+      userRole === 'SUPER_ADMIN' ? data.organizerId || organizerId : organizerId;
 
-    return this.prisma.staff.create({
-      data: {
-        name: data.name,
-        phone: data.phone,
-        organizerId: targetOrganizerId,
-      },
+    return this.prisma.$transaction(async (tx) => {
+      const staff = await tx.staff.create({
+        data: {
+          name: data.name,
+          phone: data.phone,
+          organizerId: targetOrganizerId,
+        },
+      });
+
+      if (data.eventId) {
+        await tx.eventStaff.create({
+          data: { eventId: data.eventId, staffId: staff.id },
+        });
+      }
+
+      return staff;
     });
   }
 
@@ -31,62 +40,37 @@ export class StaffService {
     if (userRole === 'SUPER_ADMIN') {
       return this.prisma.staff.findMany({
         include: {
-          assignments: {
-            include: {
-              event: true,
-            },
-          },
-          organizer: true,
+          assignments: { include: { event: true } },
+          influencer: { select: { name: true } },
         },
       });
     }
     return this.prisma.staff.findMany({
       where: { organizerId },
       include: {
-        assignments: {
-          include: {
-            event: true,
-          },
-        },
+        assignments: { include: { event: true } },
       },
     });
   }
 
   async assignEvent(organizerId: string, userRole: string, eventId: string, staffId: string) {
     const event = await this.prisma.event.findUnique({ where: { id: eventId } });
-    if (!event) {
-      throw new NotFoundException('Event not found');
-    }
-
+    if (!event) throw new NotFoundException('Event not found');
     if (userRole !== 'SUPER_ADMIN' && event.organizerId !== organizerId) {
       throw new UnauthorizedException('Unauthorized access to event');
     }
-
-    return this.prisma.eventStaff.create({
-      data: {
-        eventId,
-        staffId,
-      },
-    });
+    return this.prisma.eventStaff.create({ data: { eventId, staffId } });
   }
 
   async unassignEvent(organizerId: string, userRole: string, eventId: string, staffId: string) {
     const event = await this.prisma.event.findUnique({ where: { id: eventId } });
-    if (!event) {
-      throw new NotFoundException('Event not found');
-    }
-
+    if (!event) throw new NotFoundException('Event not found');
     if (userRole !== 'SUPER_ADMIN' && event.organizerId !== organizerId) {
       throw new UnauthorizedException('Unauthorized access to event');
     }
 
     await this.prisma.eventStaff.delete({
-      where: {
-        eventId_staffId: {
-          eventId,
-          staffId,
-        },
-      },
+      where: { eventId_staffId: { eventId, staffId } },
     });
 
     return { success: true };
@@ -98,28 +82,20 @@ export class StaffService {
       include: {
         assignments: {
           include: {
-            event: {
-              select: { id: true, title: true, status: true },
-            },
+            event: { select: { id: true, title: true, status: true } },
           },
         },
       },
     });
 
-    if (!staff) {
-      throw new NotFoundException('Staff not found');
-    }
-
+    if (!staff) throw new NotFoundException('Staff not found');
     return staff.assignments.filter((a) => a.event.status === 'ACTIVE');
   }
 
   async getMyScans(staffId: string) {
     const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000);
     return this.prisma.scanLog.findMany({
-      where: {
-        staffId,
-        scannedAt: { gt: twelveHoursAgo },
-      },
+      where: { staffId, scannedAt: { gt: twelveHoursAgo } },
       include: {
         event: { select: { title: true } },
         ticket: { select: { buyerPhone: true, buyerName: true } },

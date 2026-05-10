@@ -9,12 +9,24 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
+  private normalizePhone(phone: string): string {
+    let clean = phone.replace(/\s+/g, '');
+    if (clean.startsWith('09')) {
+      return '+2519' + clean.substring(2);
+    }
+    if (clean.startsWith('07')) {
+      return '+2517' + clean.substring(2);
+    }
+    return clean;
+  }
+
   async sendOtp(phone: string) {
-    // 1. Rate Limiting: max 3 attempts per phone per 10 minutes
+    const normalizedPhone = this.normalizePhone(phone);
+    // Rate Limiting: max 3 attempts per phone per 10 minutes
     const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
     const recentAttempts = await this.prisma.otpCode.count({
       where: {
-        phone,
+        phone: normalizedPhone,
         createdAt: { gt: tenMinutesAgo },
       },
     });
@@ -23,31 +35,25 @@ export class AuthService {
       throw new UnauthorizedException('Too many attempts. Please try again later.');
     }
 
-    // 2. Generate 6-digit code
+    // Generate 6-digit code
     const code = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes from now
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-    // 3. Save to DB
     await this.prisma.otpCode.create({
-      data: {
-        phone,
-        code,
-        expiresAt,
-      },
+      data: { phone: normalizedPhone, code, expiresAt },
     });
 
-    // 4. Send SMS (Simulation Mode)
     // TODO: Integrate Africa's Talking API here
-    console.log(`[SIMULATION] Sending OTP ${code} to ${phone}`);
+    console.log(`[SIMULATION] Sending OTP ${code} to ${normalizedPhone}`);
 
     return { success: true, message: 'OTP sent successfully' };
   }
 
   async verifyOtp(phone: string, code: string) {
-
+    const normalizedPhone = this.normalizePhone(phone);
     const otpRecord = await this.prisma.otpCode.findFirst({
       where: {
-        phone,
+        phone: normalizedPhone,
         code,
         used: false,
         expiresAt: { gt: new Date() },
@@ -63,8 +69,9 @@ export class AuthService {
       data: { used: true },
     });
 
+    // Check Super Admin first
     const superAdmin = await this.prisma.superAdmin.findUnique({
-      where: { phone },
+      where: { phone: normalizedPhone },
     });
 
     if (superAdmin) {
@@ -80,19 +87,21 @@ export class AuthService {
       };
     }
 
-    const organizer = await this.prisma.organizer.findUnique({
-      where: { phone },
+    // Check Influencer (formerly Organizer — role string stays 'ORGANIZER')
+    const influencer = await this.prisma.influencer.findUnique({
+      where: { phone: normalizedPhone },
     });
 
-    if (organizer) {
-      if (!organizer.isActive) {
+    if (influencer) {
+      if (!influencer.isActive) {
         throw new UnauthorizedException('Account is suspended. Please contact support.');
       }
       const payload = {
-        id: organizer.id,
-        phone: organizer.phone,
-        name: organizer.name,
-        role: 'ORGANIZER',
+        id: influencer.id,
+        phone: influencer.phone,
+        name: influencer.name,
+        role: 'ORGANIZER', // role string unchanged for backward compat with guards
+        slug: influencer.slug,
       };
       return {
         user: payload,
@@ -100,11 +109,16 @@ export class AuthService {
       };
     }
 
+    // Check Staff
     const staff = await this.prisma.staff.findFirst({
-      where: { phone },
+      where: { phone: normalizedPhone },
+      include: { influencer: true },
     });
 
     if (staff) {
+      if (staff.influencer && !staff.influencer.isActive) {
+        throw new UnauthorizedException('Organizer account is suspended.');
+      }
       const payload = {
         id: staff.id,
         phone: staff.phone,

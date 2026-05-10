@@ -5,16 +5,78 @@ import { PrismaService } from '../prisma/prisma.service';
 export class EventsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getPublicEvents() {
+  async getPublicEvents(filters?: {
+    team?: string;
+    competition?: string;
+    city?: string;
+    influencerId?: string;
+    search?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    take?: number;
+    skip?: number;
+  }) {
+    const where: any = { status: 'ACTIVE' };
+
+    if (filters?.team) {
+      where.OR = [
+        { homeTeam: { contains: filters.team, mode: 'insensitive' } },
+        { awayTeam: { contains: filters.team, mode: 'insensitive' } },
+        { influencer: { teamSupported: { contains: filters.team, mode: 'insensitive' } } },
+      ];
+    }
+
+    if (filters?.competition) {
+      where.competition = { contains: filters.competition, mode: 'insensitive' };
+    }
+
+    if (filters?.city) {
+      where.city = { contains: filters.city, mode: 'insensitive' };
+    }
+
+    if (filters?.influencerId) {
+      where.organizerId = filters.influencerId;
+    }
+
+    if (filters?.dateFrom || filters?.dateTo) {
+      where.dateTime = {};
+      if (filters.dateFrom) where.dateTime.gte = new Date(filters.dateFrom);
+      if (filters.dateTo) where.dateTime.lte = new Date(filters.dateTo);
+    }
+
+    if (filters?.search) {
+      where.influencer = {
+        ...where.influencer,
+        name: { contains: filters.search, mode: 'insensitive' },
+      };
+    }
+
     return this.prisma.event.findMany({
-      where: { status: 'ACTIVE' },
+      where,
       orderBy: { dateTime: 'asc' },
-      take: 12,
+      take: filters?.take ?? 20,
+      skip: filters?.skip ?? 0,
+      include: {
+        influencer: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            profilePhoto: true,
+            teamSupported: true,
+            teamColor: true,
+            isVerified: true,
+          },
+        },
+      },
     });
   }
 
   async createEvent(organizerId: string, data: any) {
-    const slug = data.title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const baseSlug = data.title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const suffix = Math.random().toString(36).substring(2, 7);
+    const slug = `${baseSlug}-${suffix}`;
+
     return this.prisma.event.create({
       data: {
         ...data,
@@ -28,6 +90,9 @@ export class EventsService {
     if (userRole === 'SUPER_ADMIN') {
       return this.prisma.event.findMany({
         orderBy: { createdAt: 'desc' },
+        include: {
+          influencer: { select: { name: true, slug: true } },
+        },
       });
     }
     return this.prisma.event.findMany({
@@ -37,12 +102,8 @@ export class EventsService {
   }
 
   async getEventById(id: string, organizerId: string, userRole: string) {
-    const event = await this.prisma.event.findUnique({
-      where: { id },
-    });
-    if (!event) {
-      throw new NotFoundException('Event not found');
-    }
+    const event = await this.prisma.event.findUnique({ where: { id } });
+    if (!event) throw new NotFoundException('Event not found');
     if (userRole !== 'SUPER_ADMIN' && event.organizerId !== organizerId) {
       throw new NotFoundException('Unauthorized access to event');
     }
@@ -53,16 +114,11 @@ export class EventsService {
     const event = await this.prisma.event.findUnique({
       where: { id: eventId },
       include: {
-        staffAssignments: {
-          include: { staff: true },
-        },
+        staffAssignments: { include: { staff: true } },
       },
     });
 
-    if (!event) {
-      throw new NotFoundException('Event not found');
-    }
-
+    if (!event) throw new NotFoundException('Event not found');
     if (userRole !== 'SUPER_ADMIN' && event.organizerId !== organizerId) {
       throw new NotFoundException('Unauthorized access to event stats');
     }
@@ -71,21 +127,15 @@ export class EventsService {
       where: { eventId },
       orderBy: { scannedAt: 'desc' },
       take: 50,
-      include: {
-        ticket: true,
-        staff: true,
-      },
+      include: { ticket: true, staff: true },
     });
 
-    // Revenue = number of paid/used tickets × event ticket price
     const paidTicketCount = await this.prisma.ticket.count({
       where: { eventId, status: { in: ['ISSUED', 'SCANNED'] } },
     });
     const totalRevenue = paidTicketCount * event.ticketPrice;
 
-    const attendeesEntered = await this.prisma.scanLog.count({
-      where: { eventId },
-    });
+    const attendeesEntered = await this.prisma.scanLog.count({ where: { eventId } });
 
     return {
       ticketsSold: event.ticketsSold,
@@ -109,43 +159,47 @@ export class EventsService {
 
   async updateEventStatus(eventId: string, organizerId: string, userRole: string, status: any) {
     const event = await this.prisma.event.findUnique({ where: { id: eventId } });
-    if (!event) {
-      throw new NotFoundException('Event not found');
-    }
-
+    if (!event) throw new NotFoundException('Event not found');
     if (userRole !== 'SUPER_ADMIN' && event.organizerId !== organizerId) {
       throw new NotFoundException('Unauthorized access to update event');
     }
 
-    // Validation for transitions
     if (status === 'ACTIVE') {
-      if (event.ticketPrice <= 0) {
+      if (event.ticketPrice <= 0)
         throw new BadRequestException('Cannot activate an event with a zero ticket price.');
-      }
-      if (!event.venue || event.venue.trim().length === 0) {
+      if (!event.venue || event.venue.trim().length === 0)
         throw new BadRequestException('Cannot activate an event without a valid venue.');
-      }
     }
 
     if (status === 'SOLD_OUT') {
-      if (event.ticketsSold < event.maxCapacity) {
+      if (event.ticketsSold < event.maxCapacity)
         throw new BadRequestException('Cannot mark as sold out when capacity is still available.');
-      }
     }
 
-    return this.prisma.event.update({
-      where: { id: eventId },
-      data: { status },
-    });
+    return this.prisma.event.update({ where: { id: eventId }, data: { status } });
   }
 
   async getEventBySlug(slug: string) {
     const event = await this.prisma.event.findUnique({
       where: { slug },
+      include: {
+        influencer: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            profilePhoto: true,
+            teamSupported: true,
+            teamColor: true,
+            isVerified: true,
+            tiktokUrl: true,
+            instagramUrl: true,
+            telegramUrl: true,
+          },
+        },
+      },
     });
-    if (!event) {
-      throw new NotFoundException('Event not found');
-    }
+    if (!event) throw new NotFoundException('Event not found');
     return event;
   }
 }

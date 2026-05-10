@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Body, Param, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
 import { EventsService } from './events.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
@@ -11,8 +11,28 @@ export class EventsController {
   constructor(private readonly eventsService: EventsService) {}
 
   @Get('public')
-  async getPublicEvents() {
-    return this.eventsService.getPublicEvents();
+  async getPublicEvents(
+    @Query('team') team?: string,
+    @Query('competition') competition?: string,
+    @Query('city') city?: string,
+    @Query('influencerId') influencerId?: string,
+    @Query('search') search?: string,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
+    @Query('take') take?: string,
+    @Query('skip') skip?: string,
+  ) {
+    return this.eventsService.getPublicEvents({
+      team,
+      competition,
+      city,
+      influencerId,
+      search,
+      dateFrom,
+      dateTo,
+      take: take ? parseInt(take) : 20,
+      skip: skip ? parseInt(skip) : 0,
+    });
   }
 
   @Get('public/:slug')
@@ -51,7 +71,11 @@ export class EventsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ORGANIZER', 'SUPER_ADMIN')
   @Patch(':id')
-  async updateEventStatus(@Request() req, @Param('id') id: string, @Body() body: UpdateEventStatusDto) {
+  async updateEventStatus(
+    @Request() req,
+    @Param('id') id: string,
+    @Body() body: UpdateEventStatusDto,
+  ) {
     return this.eventsService.updateEventStatus(id, req.user.id, req.user.role, body.status);
   }
 }

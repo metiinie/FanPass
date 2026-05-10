@@ -121,6 +121,12 @@ export class PaymentsService {
         },
       });
 
+      // Increment totalTicketsSold on the Influencer
+      await tx.influencer.update({
+        where: { id: transaction.ticket.event.organizerId },
+        data: { totalTicketsSold: { increment: 1 } },
+      });
+
       return { 
         success: true, 
         ticketId: transaction.ticketId, 

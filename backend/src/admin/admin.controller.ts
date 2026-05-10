@@ -16,75 +16,84 @@ export class AdminController {
     const totalTicketsSold = await this.prisma.ticket.count({
       where: { status: { in: ['PAID', 'ISSUED', 'SCANNED'] } },
     });
-    const totalRevenue = await this.prisma.transaction.aggregate({
+    const totalRevenueSum = await this.prisma.transaction.aggregate({
       where: { status: 'CONFIRMED' },
       _sum: { amount: true },
     });
-    const totalOrganizers = await this.prisma.organizer.count();
+
+    const settings = await this.prisma.platformSettings.findUnique({
+      where: { id: 'global' },
+    });
+
+    const gmv = totalRevenueSum._sum.amount || 0;
+    const commissionRate = settings?.commissionRate || 0.1;
+    const totalCommission = gmv * commissionRate;
+    const totalInfluencers = await this.prisma.influencer.count();
 
     return {
       success: true,
       data: {
         totalEvents,
         totalTicketsSold,
-        totalRevenue: totalRevenue._sum.amount || 0,
-        totalOrganizers,
+        totalRevenue: gmv,
+        totalCommission,
+        totalInfluencers,
       },
     };
   }
 
-  @Get('organizers')
-  async getAllOrganizers() {
-    const organizers = await this.prisma.organizer.findMany({
+  // ── Influencer Management ──────────────────────────────────
+  @Get('influencers')
+  async getAllInfluencers() {
+    const influencers = await this.prisma.influencer.findMany({
       include: {
-        _count: {
-          select: { events: true },
-        },
+        _count: { select: { events: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
-
-    return {
-      success: true,
-      data: organizers,
-    };
+    return { success: true, data: influencers };
   }
 
-  @Patch('organizers/:id/status')
-  async toggleOrganizerStatus(
+  @Patch('influencers/:id/status')
+  async toggleInfluencerStatus(
     @Param('id') id: string,
     @Body('isActive') isActive: boolean,
   ) {
-    const organizer = await this.prisma.organizer.update({
+    const influencer = await this.prisma.influencer.update({
       where: { id },
       data: { isActive },
     });
-
     return {
       success: true,
-      message: `Organizer ${organizer.name} has been ${isActive ? 'activated' : 'suspended'}.`,
-      data: organizer,
+      message: `${influencer.name} has been ${isActive ? 'activated' : 'suspended'}.`,
+      data: influencer,
     };
   }
 
+  @Patch('influencers/:id/verify')
+  async verifyInfluencer(@Param('id') id: string) {
+    const influencer = await this.prisma.influencer.update({
+      where: { id },
+      data: { isVerified: true },
+    });
+    return {
+      success: true,
+      message: `${influencer.name} is now verified.`,
+      data: influencer,
+    };
+  }
+
+  // ── Events Management ──────────────────────────────────────
   @Get('events')
   async getAllEvents() {
     const events = await this.prisma.event.findMany({
       include: {
-        organizer: {
-          select: { name: true, phone: true },
-        },
-        _count: {
-          select: { tickets: true },
-        },
+        influencer: { select: { name: true, phone: true, slug: true } },
+        _count: { select: { tickets: true } },
       },
       orderBy: { dateTime: 'desc' },
     });
-
-    return {
-      success: true,
-      data: events,
-    };
+    return { success: true, data: events };
   }
 
   @Get('tickets')
@@ -97,49 +106,33 @@ export class AdminController {
       orderBy: { issuedAt: 'desc' },
       take: 100,
     });
-
-    return {
-      success: true,
-      data: tickets,
-    };
+    return { success: true, data: tickets };
   }
 
   @Get('transactions')
   async getAllTransactions() {
     const transactions = await this.prisma.transaction.findMany({
       include: {
-        ticket: {
-          include: {
-            event: { select: { title: true } },
-          },
-        },
+        ticket: { include: { event: { select: { title: true } } } },
       },
       orderBy: { createdAt: 'desc' },
       take: 100,
     });
-
-    return {
-      success: true,
-      data: transactions,
-    };
+    return { success: true, data: transactions };
   }
 
+  // ── Platform Settings ──────────────────────────────────────
   @Get('settings')
   async getSettings() {
     let settings = await this.prisma.platformSettings.findUnique({
       where: { id: 'global' },
     });
-
     if (!settings) {
       settings = await this.prisma.platformSettings.create({
         data: { id: 'global' },
       });
     }
-
-    return {
-      success: true,
-      data: settings,
-    };
+    return { success: true, data: settings };
   }
 
   @Patch('settings')
@@ -149,11 +142,6 @@ export class AdminController {
       update: data,
       create: { ...data, id: 'global' },
     });
-
-    return {
-      success: true,
-      message: 'Platform settings updated successfully',
-      data: settings,
-    };
+    return { success: true, message: 'Platform settings updated.', data: settings };
   }
 }
