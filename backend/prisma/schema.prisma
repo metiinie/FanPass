@@ -18,6 +18,8 @@ datasource db {
 // ============================================================
 model Influencer {
   id               String      @id @default(cuid())
+  email            String      @unique
+  password         String
   phone            String      @unique
   name             String
   slug             String?     @unique // used in /influencers/[slug]
@@ -41,6 +43,8 @@ model Influencer {
 
 model SuperAdmin {
   id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
   phone     String   @unique
   name      String
   createdAt DateTime @default(now())
@@ -48,6 +52,8 @@ model SuperAdmin {
 
 model Staff {
   id           String       @id @default(cuid())
+  email        String       @unique
+  password     String
   phone        String
   name         String
   influencer   Influencer   @relation(fields: [organizerId], references: [id], onDelete: Cascade)
@@ -198,17 +204,7 @@ model ScanLog {
   @@index([eventId, scannedAt])
 }
 
-model OtpCode {
-  id        String   @id @default(cuid())
-  phone     String
-  code      String
-  expiresAt DateTime
-  used      Boolean  @default(false)
-  attempts  Int      @default(0)
-  createdAt DateTime @default(now())
-
-  @@index([phone, code])
-}
+// OtpCode model removed
 
 
 // Phase 2: Fan follow / favourites (optional)

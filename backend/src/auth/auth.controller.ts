@@ -1,40 +1,34 @@
 import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
-import { IsString, IsNotEmpty, Length } from 'class-validator';
-import { SendOtpDto } from './dto/send-otp.dto';
-
-class VerifyOtpDto {
-  @IsString()
-  @IsNotEmpty()
-  phone: string;
-
-  @IsString()
-  @Length(6, 6)
-  code: string;
-}
+import { LoginDto } from './dto/login.dto';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @Throttle({ default: { limit: 5, ttl: 60000 } })
-  @Post('send-otp')
+  @Post('login')
   @HttpCode(HttpStatus.OK)
-  async sendOtp(@Body() dto: SendOtpDto) {
-    return this.authService.sendOtp(dto.phone);
+  async login(@Body() loginDto: LoginDto) {
+    return this.authService.login(loginDto);
   }
 
-  @Throttle({ default: { limit: 10, ttl: 60000 } })
-  @Post('verify-otp')
-  @HttpCode(HttpStatus.OK)
-  async verifyOtp(@Body() dto: VerifyOtpDto) {
-    return this.authService.verifyOtp(dto.phone, dto.code);
-  }
-
+  // Backward compatibility for the frontend if it's still calling dev-login
   @Post('dev-login')
   @HttpCode(HttpStatus.OK)
-  async devLogin(@Body() dto: { email: string; pass: string }) {
-    return this.authService.devLogin(dto.email, dto.pass);
+  async devLogin(@Body() body: { email: string; pass: string }) {
+    return this.authService.devLogin(body.email, body.pass);
+  }
+
+  @Post('send-otp')
+  @HttpCode(HttpStatus.GONE) // Indicate it's no longer here
+  async sendOtp() {
+    return { success: false, message: 'OTP login is deprecated. Please use email/password.' };
+  }
+
+  @Post('verify-otp')
+  @HttpCode(HttpStatus.GONE)
+  async verifyOtp() {
+    return { success: false, message: 'OTP login is deprecated. Please use email/password.' };
   }
 }

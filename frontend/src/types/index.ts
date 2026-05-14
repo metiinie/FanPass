@@ -81,7 +81,7 @@ export interface TicketDisplay {
 }
 
 export interface ScanResult {
-  result: "VALID" | "ALREADY_USED" | "INVALID" | "WRONG_EVENT" | "RETRYING";
+  result: "VALID" | "ALREADY_USED" | "INVALID" | "WRONG_EVENT" | "RETRYING" | "EVENT_CANCELLED";
   buyerName?: string | null;
   buyerPhone?: string;
   ticketId?: string;

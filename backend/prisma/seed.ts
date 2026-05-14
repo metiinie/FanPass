@@ -1,19 +1,28 @@
 import { PrismaClient } from '@prisma/client';
+import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
 async function main() {
   console.log('🧹 Clearing existing data...');
+  // Delete in order to avoid FK constraints
+  await prisma.scanLog.deleteMany({});
+  await prisma.eventStaff.deleteMany({});
+  await prisma.ticket.deleteMany({});
+  await prisma.event.deleteMany({});
   await prisma.staff.deleteMany({});
   await prisma.influencer.deleteMany({});
   await prisma.superAdmin.deleteMany({});
-  await prisma.otpCode.deleteMany({});
 
   console.log('🌱 Starting seeding...');
+
+  const hashedPassword = await bcrypt.hash('123456', 10);
 
   // 1. Create Super Admin
   const superAdmin = await prisma.superAdmin.create({
     data: {
+      email: 'superawol@gmail.com',
+      password: hashedPassword,
       phone: '+251918982161',
       name: 'super_awol',
     },
@@ -23,6 +32,8 @@ async function main() {
   // 2. Create Influencer (formerly Organizer)
   const influencer = await prisma.influencer.create({
     data: {
+      email: 'influencer@gmail.com',
+      password: hashedPassword,
       phone: '+251718280155',
       name: 'org_awol',
       slug: 'org-awol',
@@ -35,6 +46,8 @@ async function main() {
   
   const ghost = await prisma.influencer.create({
     data: {
+      email: 'ghost@gmail.com',
+      password: hashedPassword,
       phone: '+251911223344',
       name: 'Ghost',
       slug: 'ghost-test',
@@ -49,6 +62,8 @@ async function main() {
   // 3. Create Staff
   const staff = await prisma.staff.create({
     data: {
+      email: 'awolstaff@gmail.com',
+      password: hashedPassword,
       phone: '+251918982122',
       name: 'staff_awol',
       organizerId: influencer.id,
@@ -57,6 +72,8 @@ async function main() {
 
   const abela = await prisma.staff.create({
     data: {
+      email: 'abela@gmail.com',
+      password: hashedPassword,
       phone: '+251955667788',
       name: 'Abela',
       organizerId: ghost.id,
@@ -64,7 +81,7 @@ async function main() {
   });
   console.log('✅ Staff created:', staff.name, abela.name);
 
-  // 4. Create a sample event with payment instructions
+  // 4. Create a sample event
   const sampleEvent = await prisma.event.create({
     data: {
       organizerId: influencer.id,
@@ -73,7 +90,7 @@ async function main() {
       venue: 'Capital Hotel Rooftop',
       city: 'Addis Ababa',
       dateTime: new Date('2026-05-25T18:00:00Z'),
-      ticketPrice: 15000, // 150 ETB in santim
+      ticketPrice: 15000,
       currency: 'ETB',
       maxCapacity: 100,
       status: 'ACTIVE',
@@ -82,19 +99,16 @@ async function main() {
       awayTeam: 'Man City',
       competition: 'Premier League',
       matchKickoff: new Date('2026-05-25T19:00:00Z'),
-      // New payment instruction fields
       paymentInstructions: 'Send the exact amount to any of the accounts below, then upload your receipt screenshot.',
       paymentAccounts: [
         { type: 'Telebirr', number: '0911 234 567', name: 'Dawit Haile' },
         { type: 'CBE Birr', number: '1000 0123 456', name: 'Dawit Haile' },
         { type: 'Bank Transfer', number: 'CBE — 1000012345678', name: 'Dawit Haile' },
       ],
-      expectedAmount: 150, // ETB (not santim — this is the display amount)
+      expectedAmount: 150,
     },
   });
   console.log('✅ Sample event created:', sampleEvent.title);
-
-
 
   console.log('✨ Seeding finished successfully!');
 }

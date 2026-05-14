@@ -577,8 +577,11 @@ export class TicketsService {
         if (!ticket) {
           return { result: 'INVALID', error: new BadRequestException('Ticket not found') };
         }
-        if (ticket.status === 'SCANNED') {
+        if (ticket.status === 'ALREADY_USED' || ticket.status === 'SCANNED') {
           return { result: 'ALREADY_USED', error: new ConflictException('Ticket already scanned') };
+        }
+        if (ticket.status === 'CANCELLED_PENDING_REFUND') {
+          return { result: 'EVENT_CANCELLED', error: new BadRequestException('Event has been cancelled.') };
         }
         if (ticket.status !== 'ISSUED') {
           return { result: 'INVALID', error: new BadRequestException('Ticket not valid for entry') };

@@ -39,5 +39,6 @@ export const SCAN_RESULT_LABELS: Record<string, { label: string; color: string; 
   INVALID: { label: "Invalid Ticket", color: "text-white", bgColor: "bg-red-500" },
   WRONG_EVENT: { label: "Wrong Event", color: "text-white", bgColor: "bg-red-500" },
   RETRYING: { label: "Retrying...", color: "text-white", bgColor: "bg-yellow-500" },
+  EVENT_CANCELLED: { label: "Event Cancelled", color: "text-white", bgColor: "bg-red-700" },
 };
 

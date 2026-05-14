@@ -3,10 +3,8 @@ import Credentials from "next-auth/providers/credentials";
 import { z } from "zod";
 
 const credentialsSchema = z.object({
-  phone: z.string().optional(),
-  code: z.string().optional(),
-  email: z.string().optional(),
-  password: z.string().optional(),
+  email: z.string().email(),
+  password: z.string().min(6),
 });
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3001";
@@ -15,8 +13,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
     Credentials({
       credentials: {
-        phone: { label: "Phone", type: "text" },
-        code: { label: "OTP Code", type: "text" },
         email: { label: "Email", type: "text" },
         password: { label: "Password", type: "password" },
       },
@@ -26,38 +22,27 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           throw new Error("Invalid input.");
         }
 
-        const { phone, code, email, password } = parsed.data;
+        const { email, password } = parsed.data;
 
         try {
-          let res;
-          if (email && password) {
-            res = await fetch(`${BACKEND_URL}/auth/dev-login`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ email, pass: password }),
-            });
-          } else if (phone && code) {
-            res = await fetch(`${BACKEND_URL}/auth/verify-otp`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ phone, code }),
-            });
-          } else {
-            throw new Error("Missing credentials");
-          }
+          const res = await fetch(`${BACKEND_URL}/auth/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password }),
+          });
 
           const responseData = await res.json();
 
-          if (!res.ok || (responseData.success === false)) {
+          if (!res.ok) {
             throw new Error(responseData.message || "Invalid credentials.");
           }
 
-          // In standardized API, the actual payload is inside `data.data`
-          const payload = responseData.data || responseData;
+          const payload = responseData;
 
           return {
             id: payload.user.id,
             phone: payload.user.phone,
+            email: payload.user.email,
             name: payload.user.name,
             role: payload.user.role,
             organizerId: payload.user.organizerId,
