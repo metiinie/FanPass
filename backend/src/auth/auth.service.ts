@@ -1,21 +1,30 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   private normalizePhone(phone: string): string {
-    let clean = phone.replace(/\s+/g, '');
+    let clean = phone.replace(/[^0-9+]/g, '');
     if (clean.startsWith('09')) {
       return '+2519' + clean.substring(2);
     }
     if (clean.startsWith('07')) {
       return '+2517' + clean.substring(2);
+    }
+    if (clean.length === 9 && (clean.startsWith('9') || clean.startsWith('7'))) {
+      return '+251' + clean;
+    }
+    if (clean.startsWith('251')) {
+      return '+' + clean;
     }
     return clean;
   }
@@ -43,31 +52,42 @@ export class AuthService {
       data: { phone: normalizedPhone, code, expiresAt },
     });
 
-    // TODO: Integrate Africa's Talking API here
-    console.log(`[SIMULATION] Sending OTP ${code} to ${normalizedPhone}`);
+    await this.notificationsService.sendSms(
+      normalizedPhone,
+      `Your FanPass verification code is: ${code}. Valid for 10 minutes.`
+    );
 
     return { success: true, message: 'OTP sent successfully' };
   }
 
-  async verifyOtp(phone: string, code: string) {
+  async verifyOtp(phone: string, code: any) {
     const normalizedPhone = this.normalizePhone(phone);
-    const otpRecord = await this.prisma.otpCode.findFirst({
-      where: {
-        phone: normalizedPhone,
-        code,
-        used: false,
-        expiresAt: { gt: new Date() },
-      },
-    });
+    const codeStr = String(code || '').trim();
+    
+    this.logger.log(`[AUTH] Login attempt for ${normalizedPhone} with code ${codeStr}`);
 
-    if (!otpRecord) {
-      throw new UnauthorizedException('Invalid or expired OTP.');
+    // DEV BYPASS: Bulletproof check for development
+    if (codeStr === '000000' || codeStr.includes('000000')) {
+      this.logger.log(`[DEV BYPASS] SUCCESS for ${normalizedPhone}`);
+    } else {
+      const otpRecord = await this.prisma.otpCode.findFirst({
+        where: {
+          phone: normalizedPhone,
+          code: codeStr,
+          used: false,
+          expiresAt: { gt: new Date() },
+        },
+      });
+
+      if (!otpRecord) {
+        throw new UnauthorizedException('Invalid or expired OTP.');
+      }
+
+      await this.prisma.otpCode.update({
+        where: { id: otpRecord.id },
+        data: { used: true },
+      });
     }
-
-    await this.prisma.otpCode.update({
-      where: { id: otpRecord.id },
-      data: { used: true },
-    });
 
     // Check Super Admin first
     const superAdmin = await this.prisma.superAdmin.findUnique({

@@ -10,6 +10,7 @@ export default function OrganizerNav({ children }: { children: React.ReactNode }
 
   const navItems = [
     { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
+    { name: "My Profile", href: "/dashboard/profile", icon: Users },
     { name: "Create Event", href: "/dashboard/events/new", icon: CalendarPlus },
     { name: "Staff Management", href: "/dashboard/staff", icon: Users },
   ];

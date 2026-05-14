@@ -89,7 +89,7 @@ export class StaffService {
     });
 
     if (!staff) throw new NotFoundException('Staff not found');
-    return staff.assignments.filter((a) => a.event.status === 'ACTIVE');
+    return staff.assignments.filter((a) => a.event.status === 'ACTIVE' || a.event.status === 'DRAFT');
   }
 
   async getMyScans(staffId: string) {
@@ -102,5 +102,47 @@ export class StaffService {
       },
       orderBy: { scannedAt: 'desc' },
     });
+  }
+  
+  async updateStaff(organizerId: string, userRole: string, staffId: string, data: any) {
+    const staff = await this.prisma.staff.findUnique({ where: { id: staffId } });
+    if (!staff) throw new NotFoundException('Staff not found');
+    if (userRole !== 'SUPER_ADMIN' && staff.organizerId !== organizerId) {
+      throw new UnauthorizedException('Unauthorized access to staff');
+    }
+    
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.staff.update({
+        where: { id: staffId },
+        data: {
+          name: data.name,
+          phone: data.phone,
+        },
+      });
+
+      if (data.eventId) {
+        // Upsert assignment (ignore if already assigned)
+        await tx.eventStaff.upsert({
+          where: {
+            eventId_staffId: { eventId: data.eventId, staffId: staffId }
+          },
+          update: {},
+          create: { eventId: data.eventId, staffId: staffId }
+        });
+      }
+
+      return updated;
+    });
+  }
+
+  async deleteStaff(organizerId: string, userRole: string, staffId: string) {
+    const staff = await this.prisma.staff.findUnique({ where: { id: staffId } });
+    if (!staff) throw new NotFoundException('Staff not found');
+    if (userRole !== 'SUPER_ADMIN' && staff.organizerId !== organizerId) {
+      throw new UnauthorizedException('Unauthorized access to staff');
+    }
+    
+    await this.prisma.staff.delete({ where: { id: staffId } });
+    return { success: true };
   }
 }

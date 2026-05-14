@@ -133,16 +133,31 @@ export class EventsService {
     const paidTicketCount = await this.prisma.ticket.count({
       where: { eventId, status: { in: ['ISSUED', 'SCANNED'] } },
     });
-    const totalRevenue = paidTicketCount * event.ticketPrice;
+    const totalSalesValue = paidTicketCount * event.ticketPrice;
 
     const attendeesEntered = await this.prisma.scanLog.count({ where: { eventId } });
+
+    // Submission verification stats
+    const [pendingSubmissions, flaggedSubmissions, approvedSubmissions, rejectedSubmissions] = await Promise.all([
+      this.prisma.ticket.count({ where: { eventId, verificationStatus: 'PENDING_EXTRACTION' } }),
+      this.prisma.ticket.count({ where: { eventId, verificationStatus: { in: ['EXTRACTED_HIGH_CONFIDENCE', 'EXTRACTED_LOW_CONFIDENCE', 'MANUAL_REVIEW_REQUIRED'] } } }),
+      this.prisma.ticket.count({ where: { eventId, verificationStatus: 'VERIFIED' } }),
+      this.prisma.ticket.count({ where: { eventId, verificationStatus: 'REJECTED' } }),
+    ]);
 
     return {
       ticketsSold: event.ticketsSold,
       maxCapacity: event.maxCapacity,
       attendeesEntered,
       eventStatus: event.status,
-      totalRevenue,
+      totalSalesValue,
+      submissions: {
+        pending: pendingSubmissions,
+        flagged: flaggedSubmissions,
+        approved: approvedSubmissions,
+        rejected: rejectedSubmissions,
+        needsReview: pendingSubmissions + flaggedSubmissions,
+      },
       staff: event.staffAssignments.map((es) => ({
         id: es.staff.id,
         name: es.staff.name,
@@ -164,6 +179,11 @@ export class EventsService {
       throw new NotFoundException('Unauthorized access to update event');
     }
 
+    // Protection: Cannot update status if event is already COMPLETED or CANCELLED
+    if (['COMPLETED', 'CANCELLED'].includes(event.status)) {
+      throw new BadRequestException(`Cannot update status of a ${event.status} event.`);
+    }
+
     if (status === 'ACTIVE') {
       if (event.ticketPrice <= 0)
         throw new BadRequestException('Cannot activate an event with a zero ticket price.');
@@ -171,12 +191,61 @@ export class EventsService {
         throw new BadRequestException('Cannot activate an event without a valid venue.');
     }
 
-    if (status === 'SOLD_OUT') {
-      if (event.ticketsSold < event.maxCapacity)
-        throw new BadRequestException('Cannot mark as sold out when capacity is still available.');
+    return this.prisma.event.update({ where: { id: eventId }, data: { status } });
+  }
+
+  async cancelEvent(eventId: string, organizerId: string, userRole: string, data: { refundPolicy: string, organizerContact: string }) {
+    const event = await this.prisma.event.findUnique({ 
+      where: { id: eventId },
+      include: { 
+        tickets: { 
+          where: { status: 'ISSUED' },
+          select: { buyerPhone: true, id: true }
+        } 
+      }
+    });
+    
+    if (!event) throw new NotFoundException('Event not found');
+    if (userRole !== 'SUPER_ADMIN' && event.organizerId !== organizerId) {
+      throw new NotFoundException('Unauthorized access');
     }
 
-    return this.prisma.event.update({ where: { id: eventId }, data: { status } });
+    // 1. Update event status and refund info
+    const updatedEvent = await this.prisma.event.update({
+      where: { id: eventId },
+      data: { 
+        status: 'CANCELLED',
+        refundPolicy: data.refundPolicy,
+        organizerContact: data.organizerContact,
+        refundStatus: 'NOT_STARTED'
+      }
+    });
+
+    // 2. Invalidate unused tickets (set to CANCELLED_PENDING_REFUND)
+    await this.prisma.ticket.updateMany({
+      where: { 
+        eventId, 
+        status: 'ISSUED' 
+      },
+      data: { 
+        status: 'CANCELLED_PENDING_REFUND' 
+      }
+    });
+
+    // 3. Notify attendees (Background)
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const phones = [...new Set(event.tickets.map(t => t.buyerPhone))];
+    
+    // We send notifications in background to avoid blocking the request
+    for (const phone of phones) {
+      const ticket = event.tickets.find(t => t.buyerPhone === phone);
+      this.notificationsService.sendSms(
+        phone,
+        `FanPass: "${event.title}" has been CANCELLED. For refund info, visit: ${frontendUrl}/tickets/${ticket?.id}`
+      ).catch(err => console.error(`Failed to notify ${phone} about cancellation:`, err.message));
+    }
+
+    return updatedEvent;
   }
 
   async getEventBySlug(slug: string) {
@@ -201,5 +270,37 @@ export class EventsService {
     });
     if (!event) throw new NotFoundException('Event not found');
     return event;
+  }
+
+  async updateEvent(eventId: string, organizerId: string, userRole: string, data: any) {
+    const event = await this.prisma.event.findUnique({ where: { id: eventId } });
+    if (!event) throw new NotFoundException('Event not found');
+    if (userRole !== 'SUPER_ADMIN' && event.organizerId !== organizerId) {
+      throw new NotFoundException('Unauthorized access to update event');
+    }
+
+    // Don't allow changing organizerId or slug via this method for security
+    const { organizerId: _, slug: __, ...updateData } = data;
+
+    return this.prisma.event.update({
+      where: { id: eventId },
+      data: updateData,
+    });
+  }
+
+  async deleteEvent(eventId: string, organizerId: string, userRole: string) {
+    const event = await this.prisma.event.findUnique({ where: { id: eventId } });
+    if (!event) throw new NotFoundException('Event not found');
+    if (userRole !== 'SUPER_ADMIN' && event.organizerId !== organizerId) {
+      throw new NotFoundException('Unauthorized access to delete event');
+    }
+
+    // Only allow deletion of DRAFT or CANCELLED events to prevent data loss for sold tickets
+    if (!['DRAFT', 'CANCELLED'].includes(event.status)) {
+      throw new BadRequestException('Only DRAFT or CANCELLED events can be deleted. Close active events instead.');
+    }
+
+    await this.prisma.event.delete({ where: { id: eventId } });
+    return { success: true };
   }
 }

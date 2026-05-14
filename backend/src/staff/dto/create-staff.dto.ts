@@ -9,7 +9,7 @@ export class CreateStaffDto {
   @IsNotEmpty()
   phone: string;
 
-  @IsUUID()
+  @IsString()
   @IsOptional()
   eventId?: string;
 }

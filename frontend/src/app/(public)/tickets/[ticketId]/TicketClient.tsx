@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { formatDateTime, maskPhone } from "@/lib/utils";
 import { TICKET_STATUS_LABELS } from "@/lib/constants";
-import { MapPin, Calendar, CheckCircle2, Ticket as TicketIcon } from "lucide-react";
+import { MapPin, Calendar, CheckCircle2, Ticket as TicketIcon, AlertCircle } from "lucide-react";
 import Image from "next/image";
 import QRCode from "qrcode";
 import InstallPrompt from "@/components/pwa/InstallPrompt";
@@ -155,14 +155,59 @@ export default function TicketClient({ initialTicket }: TicketClientProps) {
               </div>
             </div>
 
+            </div>
+
+            {ticket.event.status === "CANCELLED" && (
+              <div className="mt-6 p-6 bg-red-50 rounded-2xl border border-red-100 text-left w-full">
+                <h3 className="text-red-800 font-bold mb-2 flex items-center gap-2">
+                   <AlertCircle className="w-5 h-5" /> Event Cancelled
+                </h3>
+                <p className="text-red-700 text-sm mb-4">This event has been cancelled by the organizer.</p>
+                
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-xs font-bold text-red-900 uppercase tracking-wider mb-1">Refund Policy</p>
+                    <p className="text-sm text-red-700">{ticket.event.refundPolicy || "Please contact the organizer for refund details."}</p>
+                  </div>
+                  {ticket.event.organizerContact && (
+                    <div>
+                      <p className="text-xs font-bold text-red-900 uppercase tracking-wider mb-1">Organizer Contact</p>
+                      <p className="text-sm text-red-700 font-bold">{ticket.event.organizerContact}</p>
+                    </div>
+                  )}
+                  <div className="pt-2 border-t border-red-200">
+                    <p className="text-xs text-red-600 italic">Note: FanPass is a verification tool. Refunds are handled manually by the event organizer.</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
           </div>
         </div>
         
-        {/* Helper text */}
+        {/* Share Buttons */}
         {!isPending && (ticket.status === "ISSUED" || ticket.status === "SCANNED") && (
-          <p className="text-center text-[#6B7280] text-sm mt-8 animate-in slide-in-from-bottom-4 duration-500">
-            Take a screenshot or bookmark this page to access your ticket later.
-          </p>
+          <div className="mt-8 space-y-4 animate-in slide-in-from-bottom-4 duration-500">
+            <p className="text-center text-[#6B7280] text-sm">Share your ticket or bookmark this page.</p>
+            <div className="flex gap-3">
+              <a 
+                href={`https://wa.me/?text=${encodeURIComponent(`Got my FanPass ticket for ${ticket.event.title}! ${window.location.href}`)}`}
+                target="_blank"
+                rel="noreferrer"
+                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-[#25D366] text-white font-bold text-sm shadow-sm hover:bg-[#20bd5b] transition-colors"
+              >
+                Share on WhatsApp
+              </a>
+              <a 
+                href={`https://t.me/share/url?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent(`Got my FanPass ticket for ${ticket.event.title}!`)}`}
+                target="_blank"
+                rel="noreferrer"
+                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-[#0088CC] text-white font-bold text-sm shadow-sm hover:bg-[#0077b5] transition-colors"
+              >
+                Share on Telegram
+              </a>
+            </div>
+          </div>
         )}
       </div>
       <InstallPrompt />

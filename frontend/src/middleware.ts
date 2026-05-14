@@ -9,30 +9,38 @@ export default auth((req) => {
   const isAuthRoute = nextUrl.pathname.startsWith("/login");
   const isOrganizerRoute = nextUrl.pathname.startsWith("/dashboard");
   const isStaffRoute = nextUrl.pathname.startsWith("/scan");
+  const isAdminRoute = nextUrl.pathname.startsWith("/admin");
 
   if (isAuthRoute) {
     if (isLoggedIn) {
-      if (role === "ORGANIZER") {
-        return NextResponse.redirect(new URL("/dashboard", nextUrl));
-      }
-      if (role === "STAFF") {
-        return NextResponse.redirect(new URL("/scan", nextUrl));
-      }
+      if (role === "SUPER_ADMIN") return NextResponse.redirect(new URL("/admin/dashboard", nextUrl));
+      if (role === "ORGANIZER") return NextResponse.redirect(new URL("/dashboard", nextUrl));
+      if (role === "STAFF") return NextResponse.redirect(new URL("/scan", nextUrl));
       return NextResponse.redirect(new URL("/", nextUrl));
     }
     return null;
   }
 
-  if (!isLoggedIn && (isOrganizerRoute || isStaffRoute)) {
+  if (!isLoggedIn && (isOrganizerRoute || isStaffRoute || isAdminRoute)) {
     return NextResponse.redirect(new URL("/login", nextUrl));
   }
 
+  if (isAdminRoute && role !== "SUPER_ADMIN") {
+    if (role === "ORGANIZER") return NextResponse.redirect(new URL("/dashboard", nextUrl));
+    if (role === "STAFF") return NextResponse.redirect(new URL("/scan", nextUrl));
+    return NextResponse.redirect(new URL("/", nextUrl));
+  }
+
   if (isOrganizerRoute && role !== "ORGANIZER") {
-    return NextResponse.redirect(new URL("/scan", nextUrl)); // Redirect to what they have access to
+    if (role === "SUPER_ADMIN") return NextResponse.redirect(new URL("/admin/dashboard", nextUrl));
+    if (role === "STAFF") return NextResponse.redirect(new URL("/scan", nextUrl));
+    return NextResponse.redirect(new URL("/", nextUrl));
   }
 
   if (isStaffRoute && role !== "STAFF") {
-    return NextResponse.redirect(new URL("/dashboard", nextUrl));
+    if (role === "SUPER_ADMIN") return NextResponse.redirect(new URL("/admin/dashboard", nextUrl));
+    if (role === "ORGANIZER") return NextResponse.redirect(new URL("/dashboard", nextUrl));
+    return NextResponse.redirect(new URL("/", nextUrl));
   }
 
   return null;

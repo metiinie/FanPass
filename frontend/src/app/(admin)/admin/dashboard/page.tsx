@@ -2,7 +2,7 @@ import { auth } from "@/server/auth";
 import { formatCurrency } from "@/lib/utils";
 import { fetchBackend } from "@/lib/apiClient";
 import { redirect } from "next/navigation";
-import { LayoutDashboard, Users, Calendar, Wallet, TrendingUp, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, Users, Calendar, Wallet, TrendingUp, ShieldCheck, Percent, Settings } from "lucide-react";
 
 export default async function AdminDashboardPage() {
   const session = await auth();
@@ -14,7 +14,7 @@ export default async function AdminDashboardPage() {
   let stats: any = {
     totalEvents: 0,
     totalTicketsSold: 0,
-    totalRevenue: 0,
+    totalSalesValue: 0,
     totalOrganizers: 0
   };
 
@@ -38,14 +38,14 @@ export default async function AdminDashboardPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         <div className="bg-white p-6 rounded-2xl border border-[#E5E7EB] shadow-sm flex items-start gap-4">
           <div className="bg-blue-50 p-3 rounded-xl text-blue-600">
             <TrendingUp className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-sm font-medium text-[#6B7280] uppercase tracking-wider mb-1">Total GMV</p>
-            <p className="text-3xl font-bold font-['Outfit'] text-[#111827]">{formatCurrency(stats.totalRevenue)}</p>
+            <p className="text-sm font-medium text-[#6B7280] uppercase tracking-wider mb-1">Total Ticket Value</p>
+            <p className="text-2xl font-bold font-['Outfit'] text-[#111827]">{formatCurrency(stats.totalSalesValue)}</p>
           </div>
         </div>
 
@@ -55,7 +55,7 @@ export default async function AdminDashboardPage() {
           </div>
           <div>
             <p className="text-sm font-medium text-[#6B7280] uppercase tracking-wider mb-1">Organizers</p>
-            <p className="text-3xl font-bold font-['Outfit'] text-[#111827]">{stats.totalOrganizers}</p>
+            <p className="text-2xl font-bold font-['Outfit'] text-[#111827]">{stats.totalOrganizers}</p>
           </div>
         </div>
 
@@ -65,7 +65,7 @@ export default async function AdminDashboardPage() {
           </div>
           <div>
             <p className="text-sm font-medium text-[#6B7280] uppercase tracking-wider mb-1">Live Events</p>
-            <p className="text-3xl font-bold font-['Outfit'] text-[#111827]">{stats.totalEvents}</p>
+            <p className="text-2xl font-bold font-['Outfit'] text-[#111827]">{stats.totalEvents}</p>
           </div>
         </div>
 
@@ -75,7 +75,7 @@ export default async function AdminDashboardPage() {
           </div>
           <div>
             <p className="text-sm font-medium text-[#6B7280] uppercase tracking-wider mb-1">Tickets Sold</p>
-            <p className="text-3xl font-bold font-['Outfit'] text-[#111827]">{stats.totalTicketsSold.toLocaleString()}</p>
+            <p className="text-2xl font-bold font-['Outfit'] text-[#111827]">{stats.totalTicketsSold.toLocaleString()}</p>
           </div>
         </div>
       </div>
@@ -92,8 +92,8 @@ export default async function AdminDashboardPage() {
             </button>
             <button className="p-4 border border-[#E5E7EB] rounded-xl text-left hover:border-[#1A7A4A] hover:bg-[#F8FAF9] transition-all group">
               <Settings className="w-6 h-6 text-[#1A7A4A] mb-3" />
-              <p className="font-bold text-[#111827]">System Settings</p>
-              <p className="text-sm text-[#6B7280]">Configure payment keys</p>
+              <p className="font-bold text-[#111827]">System Health</p>
+              <p className="text-sm text-[#6B7280]">Monitor logs and metrics</p>
             </button>
           </div>
         </div>
@@ -107,7 +107,7 @@ export default async function AdminDashboardPage() {
             </li>
             <li className="flex items-center gap-3 text-sm text-gray-400">
               <div className="w-2 h-2 rounded-full bg-green-500" />
-              Payment webhooks active
+              Receipt verification active
             </li>
             <li className="flex items-center gap-3 text-sm text-gray-400">
               <div className="w-2 h-2 rounded-full bg-green-500" />

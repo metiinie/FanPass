@@ -7,7 +7,7 @@ import { AuthModule } from './auth/auth.module';
 import { EventsModule } from './events/events.module';
 import { TicketsModule } from './tickets/tickets.module';
 import { StaffModule } from './staff/staff.module';
-import { PaymentsModule } from './payments/payments.module';
+import { ReceiptsModule } from './receipts/receipts.module';
 import { AdminModule } from './admin/admin.module';
 import { InfluencersModule } from './influencers/influencers.module';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
@@ -25,7 +25,7 @@ import { APP_GUARD } from '@nestjs/core';
     EventsModule,
     TicketsModule,
     StaffModule,
-    PaymentsModule,
+    ReceiptsModule,
     AdminModule,
     InfluencersModule,
   ],

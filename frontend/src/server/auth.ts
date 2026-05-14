@@ -3,8 +3,10 @@ import Credentials from "next-auth/providers/credentials";
 import { z } from "zod";
 
 const credentialsSchema = z.object({
-  phone: z.string().min(10, "Invalid phone number"),
-  code: z.string().length(6, "Code must be 6 digits"),
+  phone: z.string().optional(),
+  code: z.string().optional(),
+  email: z.string().optional(),
+  password: z.string().optional(),
 });
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3001";
@@ -15,6 +17,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       credentials: {
         phone: { label: "Phone", type: "text" },
         code: { label: "OTP Code", type: "text" },
+        email: { label: "Email", type: "text" },
+        password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
         const parsed = credentialsSchema.safeParse(credentials);
@@ -22,32 +26,46 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           throw new Error("Invalid input.");
         }
 
-        const { phone, code } = parsed.data;
+        const { phone, code, email, password } = parsed.data;
 
         try {
-          const res = await fetch(`${BACKEND_URL}/auth/verify-otp`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ phone, code }),
-          });
-
-          const data = await res.json();
-
-          if (!res.ok) {
-            throw new Error(data.message || "Invalid or expired OTP.");
+          let res;
+          if (email && password) {
+            res = await fetch(`${BACKEND_URL}/auth/dev-login`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email, pass: password }),
+            });
+          } else if (phone && code) {
+            res = await fetch(`${BACKEND_URL}/auth/verify-otp`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ phone, code }),
+            });
+          } else {
+            throw new Error("Missing credentials");
           }
 
-          // The backend returns user data + an accessToken
+          const responseData = await res.json();
+
+          if (!res.ok || (responseData.success === false)) {
+            throw new Error(responseData.message || "Invalid credentials.");
+          }
+
+          // In standardized API, the actual payload is inside `data.data`
+          const payload = responseData.data || responseData;
+
           return {
-            id: data.user.id,
-            phone: data.user.phone,
-            name: data.user.name,
-            role: data.user.role,
-            organizerId: data.user.organizerId,
-            accessToken: data.accessToken,
+            id: payload.user.id,
+            phone: payload.user.phone,
+            name: payload.user.name,
+            role: payload.user.role,
+            organizerId: payload.user.organizerId,
+            accessToken: payload.accessToken,
           };
         } catch (error: any) {
-          throw new Error(error.message || "Failed to authenticate.");
+          console.error("[AUTH] Authorize Error:", error.message);
+          return null;
         }
       },
     }),
@@ -55,7 +73,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.id = user.id;
+        token.id = user.id as string;
         token.phone = user.phone;
         token.name = user.name as string;
         token.role = user.role;
@@ -66,12 +84,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.id = token.id;
-        session.user.phone = token.phone;
-        session.user.name = token.name;
-        session.user.role = token.role;
-        session.accessToken = token.accessToken;
-        if (token.organizerId) session.user.organizerId = token.organizerId;
+        session.user.id = token.id as string;
+        session.user.phone = token.phone as string;
+        session.user.name = token.name as string;
+        session.user.role = token.role as string;
+        if (token.accessToken) session.accessToken = token.accessToken as string;
+        if (token.organizerId) session.user.organizerId = token.organizerId as string;
       }
       return session;
     },
@@ -82,5 +100,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   session: {
     strategy: "jwt",
   },
-  secret: process.env.NEXTAUTH_SECRET,
+  trustHost: true,
+  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
 });

@@ -1,5 +1,6 @@
 // FanPass — Prisma Schema
 // Football Influencer Watch Party Platform
+// Smart Receipt Verification System
 
 generator client {
   provider = "prisma-client-js"
@@ -72,7 +73,9 @@ model Event {
   maxCapacity      Int
   ticketsSold      Int          @default(0)
   status           EventStatus  @default(DRAFT)
-  paymentMethods   String[]     // ["TELEBIRR", "CBE_BIRR", "MPESA"]
+  refundPolicy     String?      // instructions for manual refunds
+  organizerContact String?      // contact for refund queries
+  refundStatus     String?      // e.g. "NOT_STARTED", "IN_PROGRESS", "COMPLETED"
   slug             String       @unique // used in public URL: /events/[slug]
   createdAt        DateTime     @default(now())
 
@@ -84,6 +87,11 @@ model Event {
   coverImage       String?      // Cloudinary URL for event cover
   city             String?      // city for filtering, e.g. "Addis Ababa"
 
+  // Payment instruction fields (shown to fan after clicking Buy)
+  paymentInstructions String?   // free text e.g. "Send to Telebirr: 0911 XXX XXX"
+  paymentAccounts     Json?     // structured: [{ type: "Telebirr", number: "0911...", name: "Dawit H." }, ...]
+  expectedAmount      Int?      // ticket price in ETB — used by AI to validate extracted amount
+
   tickets          Ticket[]
   staffAssignments EventStaff[]
   scanLogs         ScanLog[]
@@ -92,8 +100,9 @@ model Event {
 enum EventStatus {
   DRAFT
   ACTIVE
-  SOLD_OUT
-  CLOSED
+  SALES_CLOSED
+  LIVE
+  COMPLETED
   CANCELLED
 }
 
@@ -103,36 +112,65 @@ model Ticket {
   eventId     String
   buyerPhone  String
   buyerName   String?
-  qrToken     String?      @unique // signed JWT — nullable until payment confirmed
+  qrToken     String?      @unique // signed JWT — nullable until approval confirmed
   status      TicketStatus @default(PENDING)
   issuedAt    DateTime     @default(now())
   scannedAt   DateTime?
-  scanLog     ScanLog?
-  transaction Transaction?
+  ticketCount Int          @default(1) // number of tickets in this submission
+  note        String?      // optional note from fan
+
+  // Receipt verification fields
+  screenshotUrl        String?        // uploaded receipt image URL (Cloudinary)
+  screenshotUploadedAt DateTime?
+  imageHash            String?        // perceptual hash for duplicate detection
+
+  // AI-extracted data from the receipt
+  extractedAmount      Float?         // amount read by AI from screenshot
+  extractedSenderName  String?        // name/account AI detected as sender
+  extractedDate        String?        // date string extracted from receipt
+  extractedRef         String?        // transaction reference number if visible
+  aiConfidenceScore    Float?         // 0.0 to 1.0 — how confident the AI is
+  aiRawText            String?        // full raw text extracted, stored for audit
+
+  // Admin decision
+  verificationStatus   VerificationStatus @default(PENDING_EXTRACTION)
+  reviewedBy           String?        // admin/organizer user ID who approved/rejected
+  reviewedAt           DateTime?
+  rejectionReason      String?        // filled if rejected, shown to fan
+
+  // SMS Notification tracking
+  smsStatus            SmsStatus?
+  smsRetryCount        Int            @default(0)
+  lastSmsAttempt       DateTime?
+  smsError             String?
+
+  scanLogs    ScanLog[]
+}
+
+enum SmsStatus {
+  PENDING
+  SENT
+  FAILED
 }
 
 enum TicketStatus {
   PENDING
-  PAID
   ISSUED
   SCANNED
   EXPIRED
-  REFUNDED
+  CANCELLED_PENDING_REFUND
+  REFUND_CONFIRMED
 }
 
-model Transaction {
-  id             String    @id @default(cuid())
-  ticket         Ticket    @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  ticketId       String    @unique
-  provider       String    // "TELEBIRR" | "CBE_BIRR" | "MPESA"
-  amount         Int
-  currency       String
-  providerRef    String?   // transaction ID from payment provider
-  status         String    // "PENDING" | "CONFIRMED" | "FAILED"
-  webhookPayload Json?
-  verifiedAt     DateTime?
-  createdAt      DateTime  @default(now())
+enum VerificationStatus {
+  PENDING_EXTRACTION
+  EXTRACTED_HIGH_CONFIDENCE
+  EXTRACTED_LOW_CONFIDENCE
+  MANUAL_REVIEW_REQUIRED
+  VERIFIED
+  REJECTED
 }
+
 
 model EventStaff {
   event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
@@ -146,7 +184,7 @@ model EventStaff {
 model ScanLog {
   id            String     @id @default(cuid())
   ticket        Ticket     @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  ticketId      String     @unique
+  ticketId      String
   event         Event      @relation(fields: [eventId], references: [id], onDelete: Cascade)
   eventId       String
   staff         Staff?     @relation(fields: [staffId], references: [id])
@@ -156,6 +194,8 @@ model ScanLog {
   result        String     // "VALID" | "ALREADY_USED" | "INVALID" | "WRONG_EVENT"
   scannedAt     DateTime   @default(now())
   deviceInfo    String?
+
+  @@index([eventId, scannedAt])
 }
 
 model OtpCode {
@@ -170,15 +210,6 @@ model OtpCode {
   @@index([phone, code])
 }
 
-model PlatformSettings {
-  id                String   @id @default("global")
-  telebirrAppId     String?
-  telebirrAppKey    String?
-  telebirrSecret    String?
-  telebirrShortCode String?
-  commissionRate    Float    @default(0.1) // 10%
-  updatedAt         DateTime @updatedAt
-}
 
 // Phase 2: Fan follow / favourites (optional)
 model FanFollow {

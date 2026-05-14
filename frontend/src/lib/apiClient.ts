@@ -20,11 +20,23 @@ export async function fetchBackend(endpoint: string, options: FetchOptions = {})
   };
 
   if (requireAuth) {
-    const session = await auth();
-    if (session?.accessToken) {
-      customHeaders["Authorization"] = `Bearer ${session.accessToken}`;
+    let token: string | undefined;
+
+    if (typeof window !== "undefined") {
+      // Client-side: use getSession from next-auth/react
+      const { getSession } = await import("next-auth/react");
+      const session = await getSession();
+      token = (session as any)?.accessToken;
     } else {
-      throw new Error("Unauthorized: No access token found");
+      // Server-side: use auth() from our server config
+      const session = await auth();
+      token = session?.accessToken;
+    }
+
+    if (token) {
+      customHeaders["Authorization"] = `Bearer ${token}`;
+    } else {
+      throw new Error("Unauthorized: No access token found. Please log in again.");
     }
   }
 

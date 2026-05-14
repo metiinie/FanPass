@@ -8,6 +8,9 @@ export default function LoginPage() {
   const router = useRouter();
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loginMode, setLoginMode] = useState<"PHONE" | "EMAIL">("PHONE");
   const [step, setStep] = useState<"PHONE" | "CODE">("PHONE");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -54,9 +57,31 @@ export default function LoginPage() {
         throw new Error(res.error);
       }
 
-      // NextAuth handles the session, we just redirect
-      // We will let the middleware handle redirecting to the correct dashboard based on role
-      // For now, redirect to dashboard.
+      router.push("/dashboard");
+      router.refresh();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleEmailLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError("");
+
+    try {
+      const res = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
+
+      if (res?.error) {
+        throw new Error(res.error);
+      }
+
       router.push("/dashboard");
       router.refresh();
     } catch (err: any) {
@@ -74,7 +99,11 @@ export default function LoginPage() {
             Welcome back
           </h1>
           <p className="text-[#6B7280]">
-            {step === "PHONE" ? "Enter your phone number to sign in" : "Enter the 6-digit code sent to your phone"}
+            {loginMode === "EMAIL" 
+              ? "Sign in with your email" 
+              : step === "PHONE" 
+                ? "Enter your phone number to sign in" 
+                : "Enter the 6-digit code sent to your phone"}
           </p>
         </div>
 
@@ -84,7 +113,52 @@ export default function LoginPage() {
           </div>
         )}
 
-        {step === "PHONE" ? (
+        {loginMode === "EMAIL" ? (
+          <form onSubmit={handleEmailLogin} className="space-y-4">
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-[#111827] mb-1">
+                Email
+              </label>
+              <input
+                id="email"
+                type="email"
+                placeholder="admin@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border-2 border-[#E5E7EB] focus:border-[#1A7A4A] focus:outline-none transition-colors"
+                required
+              />
+            </div>
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-[#111827] mb-1">
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                placeholder="••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border-2 border-[#E5E7EB] focus:border-[#1A7A4A] focus:outline-none transition-colors"
+                required
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={isLoading || !email || !password}
+              className="w-full py-3 px-4 rounded-xl font-semibold tracking-wide bg-[#1A7A4A] text-white hover:bg-[#0F4D2E] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {isLoading ? "Signing In..." : "Sign In"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setLoginMode("PHONE")}
+              className="w-full py-2 text-sm text-[#6B7280] hover:text-[#111827]"
+            >
+              Back to Phone Login
+            </button>
+          </form>
+        ) : step === "PHONE" ? (
           <form onSubmit={handleSendOtp} className="space-y-4">
             <div>
               <label htmlFor="phone" className="block text-sm font-medium text-[#111827] mb-1">
@@ -106,6 +180,13 @@ export default function LoginPage() {
               className="w-full py-3 px-4 rounded-xl font-semibold tracking-wide bg-[#1A7A4A] text-white hover:bg-[#0F4D2E] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {isLoading ? "Sending..." : "Continue"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setLoginMode("EMAIL")}
+              className="w-full py-2 text-sm text-[#6B7280] hover:text-[#111827]"
+            >
+              Admin/Staff Login
             </button>
           </form>
         ) : (

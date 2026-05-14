@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { UserPlus, Search, Trash2, ShieldCheck } from "lucide-react";
+import { UserPlus, Search, Trash2, ShieldCheck, Edit2, X } from "lucide-react";
 import { maskPhone } from "@/lib/utils";
 import { useSession } from "next-auth/react";
+import { fetchBackend } from "@/lib/apiClient";
+import { toast } from "sonner";
 
 export default function StaffManagementPage() {
   const [staff, setStaff] = useState<any[]>([]);
@@ -18,21 +20,14 @@ export default function StaffManagementPage() {
     phone: "",
     eventId: "", // Initial assignment
   });
+  const [editingStaffId, setEditingStaffId] = useState<string | null>(null);
 
   const fetchData = async () => {
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
-      const headers = { "Authorization": `Bearer ${session?.accessToken}` };
-      
-      const [staffRes, eventsRes] = await Promise.all([
-        fetch(`${backendUrl}/staff`, { headers }),
-        fetch(`${backendUrl}/events`, { headers }),
+      const [staffData, eventsData] = await Promise.all([
+        fetchBackend("/staff"),
+        fetchBackend("/events"),
       ]);
-
-      if (!staffRes.ok || !eventsRes.ok) throw new Error("Failed to load data");
-
-      const staffData = await staffRes.json();
-      const eventsData = await eventsRes.json();
 
       setStaff(staffData);
       setEvents(eventsData.filter((e: any) => e.status === "ACTIVE" || e.status === "DRAFT"));
@@ -53,21 +48,25 @@ export default function StaffManagementPage() {
     setError("");
 
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
-      const res = await fetch(`${backendUrl}/staff`, {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${session?.accessToken}`
-        },
-        body: JSON.stringify(formData),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) throw new Error(data.error || "Failed to create staff account");
+      if (editingStaffId) {
+        await fetchBackend(`/staff/${editingStaffId}`, {
+          method: "PATCH",
+          body: JSON.stringify({ 
+            name: formData.name, 
+            phone: formData.phone,
+            eventId: formData.eventId || undefined
+          }),
+        });
+      } else {
+        await fetchBackend("/staff", {
+          method: "POST",
+          body: JSON.stringify(formData),
+        });
+      }
 
       setFormData({ name: "", phone: "", eventId: "" });
+      setEditingStaffId(null);
+      toast.success(editingStaffId ? "Staff updated" : "Staff added");
       fetchData();
     } catch (err: any) {
       setError(err.message);
@@ -76,16 +75,38 @@ export default function StaffManagementPage() {
     }
   };
 
+  const handleEditStaff = (member: any) => {
+    setEditingStaffId(member.id);
+    setFormData({
+      name: member.name,
+      phone: member.phone,
+      eventId: "", // Cannot change initial assignment after creation via this form
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleDeleteStaff = async (staffId: string) => {
+    if (!confirm("Are you sure you want to delete this staff member? This will also remove them from all assigned events.")) return;
+
+    try {
+      await fetchBackend(`/staff/${staffId}`, {
+        method: "DELETE",
+      });
+      fetchData();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to delete staff member");
+    }
+  };
+
   const handleRemoveAssignment = async (staffId: string, eventId: string) => {
     if (!confirm("Remove this staff member from the event?")) return;
 
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
-      const res = await fetch(`${backendUrl}/events/${eventId}/staff/${staffId}`, {
+      await fetchBackend(`/events/${eventId}/staff/${staffId}`, {
         method: "DELETE",
-        headers: { "Authorization": `Bearer ${session?.accessToken}` }
       });
-      if (res.ok) fetchData();
+      fetchData();
     } catch (err) {
       console.error(err);
       alert("Failed to remove assignment");
@@ -110,7 +131,9 @@ export default function StaffManagementPage() {
           <div className="bg-white rounded-2xl border border-[#E5E7EB] shadow-sm overflow-hidden sticky top-6">
             <div className="p-6 border-b border-[#E5E7EB] bg-gray-50 flex items-center gap-2">
               <UserPlus className="w-5 h-5 text-[#6B7280]" />
-              <h3 className="font-bold text-[#111827] font-['Outfit'] text-lg">Add New Staff</h3>
+              <h3 className="font-bold text-[#111827] font-['Outfit'] text-lg">
+                {editingStaffId ? "Edit Staff Member" : "Add New Staff"}
+              </h3>
             </div>
             
             <div className="p-6">
@@ -157,13 +180,27 @@ export default function StaffManagementPage() {
                     ))}
                   </select>
                 </div>
-                <button
-                  type="submit"
-                  disabled={isSubmitting || !formData.name || !formData.phone}
-                  className="w-full mt-2 py-2.5 rounded-xl font-medium tracking-wide bg-[#1A7A4A] text-white hover:bg-[#0F4D2E] disabled:opacity-50 transition-colors shadow-sm"
-                >
-                  {isSubmitting ? "Adding..." : "Add Staff Member"}
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    type="submit"
+                    disabled={isSubmitting || !formData.name || !formData.phone}
+                    className="flex-1 py-2.5 rounded-xl font-medium tracking-wide bg-[#1A7A4A] text-white hover:bg-[#0F4D2E] disabled:opacity-50 transition-colors shadow-sm"
+                  >
+                    {isSubmitting ? (editingStaffId ? "Saving..." : "Adding...") : (editingStaffId ? "Save Changes" : "Add Staff Member")}
+                  </button>
+                  {editingStaffId && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingStaffId(null);
+                        setFormData({ name: "", phone: "", eventId: "" });
+                      }}
+                      className="px-3 py-2.5 rounded-xl border border-[#E5E7EB] text-[#6B7280] hover:bg-gray-50 transition-colors"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  )}
+                </div>
               </form>
             </div>
           </div>
@@ -198,6 +235,20 @@ export default function StaffManagementPage() {
                         <ShieldCheck className="w-4 h-4 text-[#1A7A4A]" />
                       </h4>
                       <p className="text-sm text-[#6B7280] mt-1">{member.phone}</p>
+                      <div className="flex gap-3 mt-3">
+                        <button 
+                          onClick={() => handleEditStaff(member)}
+                          className="text-xs font-medium text-[#1A7A4A] hover:underline flex items-center gap-1"
+                        >
+                          <Edit2 className="w-3 h-3" /> Edit
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteStaff(member.id)}
+                          className="text-xs font-medium text-red-500 hover:underline flex items-center gap-1"
+                        >
+                          <Trash2 className="w-3 h-3" /> Delete
+                        </button>
+                      </div>
                     </div>
 
                     <div className="sm:w-64 shrink-0">
@@ -210,6 +261,9 @@ export default function StaffManagementPage() {
                             <div key={assignment.eventId} className="flex items-center justify-between bg-white border border-gray-200 rounded-lg px-3 py-1.5 shadow-sm">
                               <span className="text-sm font-medium text-[#111827] truncate mr-2" title={assignment.event.title}>
                                 {assignment.event.title}
+                                {assignment.event.status === 'DRAFT' && (
+                                  <span className="ml-2 text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">DRAFT</span>
+                                )}
                               </span>
                               <button 
                                 onClick={() => handleRemoveAssignment(member.id, assignment.eventId)}

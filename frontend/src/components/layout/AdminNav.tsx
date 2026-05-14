@@ -3,14 +3,15 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { LayoutDashboard, Users, Calendar, LogOut, Ticket, Settings } from "lucide-react";
+import { LayoutDashboard, Users, Calendar, LogOut, Ticket, Settings, CheckCircle2 } from "lucide-react";
 
 export default function AdminNav({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   const navItems = [
     { name: "Overview", href: "/admin/dashboard", icon: LayoutDashboard },
-    { name: "Organizers", href: "/admin/organizers", icon: Users },
+    { name: "Approvals", href: "/admin/approvals", icon: CheckCircle2 },
+    { name: "Influencers", href: "/admin/organizers", icon: Users },
     { name: "All Events", href: "/admin/events", icon: Calendar },
     { name: "Settings", href: "/admin/settings", icon: Settings },
   ];

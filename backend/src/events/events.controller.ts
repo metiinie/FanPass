@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
 import { EventsService } from './events.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
@@ -71,11 +71,33 @@ export class EventsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ORGANIZER', 'SUPER_ADMIN')
   @Patch(':id')
-  async updateEventStatus(
+  async updateEvent(
     @Request() req,
     @Param('id') id: string,
-    @Body() body: UpdateEventStatusDto,
+    @Body() body: any,
   ) {
-    return this.eventsService.updateEventStatus(id, req.user.id, req.user.role, body.status);
+    if (body.status && Object.keys(body).length === 1) {
+      // Compatibility with existing status-only updates
+      return this.eventsService.updateEventStatus(id, req.user.id, req.user.role, body.status);
+    }
+    return this.eventsService.updateEvent(id, req.user.id, req.user.role, body);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ORGANIZER', 'SUPER_ADMIN')
+  @Post(':id/cancel')
+  async cancel(
+    @Request() req,
+    @Param('id') id: string,
+    @Body() body: { refundPolicy: string, organizerContact: string },
+  ) {
+    return this.eventsService.cancelEvent(id, req.user.id, req.user.role, body);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ORGANIZER', 'SUPER_ADMIN')
+  @Delete(':id')
+  async deleteEvent(@Request() req, @Param('id') id: string) {
+    return this.eventsService.deleteEvent(id, req.user.id, req.user.role);
   }
 }

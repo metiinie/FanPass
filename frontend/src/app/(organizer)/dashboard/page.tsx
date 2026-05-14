@@ -3,7 +3,7 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import { EVENT_STATUS_LABELS } from "@/lib/constants";
 import { fetchBackend } from "@/lib/apiClient";
 import Link from "next/link";
-import { Calendar, Ticket, Wallet, ChevronRight, Plus } from "lucide-react";
+import { Calendar, Ticket, Wallet, ChevronRight, Plus, Edit } from "lucide-react";
 import { redirect } from "next/navigation";
 
 export default async function DashboardPage() {
@@ -21,7 +21,7 @@ export default async function DashboardPage() {
 
   const totalEvents = events.length;
   const totalTicketsSold = events.reduce((sum: number, e: any) => sum + e.ticketsSold, 0);
-  const totalRevenue = events.reduce((sum: number, e: any) => sum + (e.ticketsSold * e.ticketPrice), 0);
+  const totalTicketValue = events.reduce((sum: number, e: any) => sum + (e.ticketsSold * e.ticketPrice), 0);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
@@ -66,8 +66,8 @@ export default async function DashboardPage() {
             <Wallet className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-sm font-medium text-[#6B7280] uppercase tracking-wider mb-1">Total Revenue</p>
-            <p className="text-3xl font-bold font-['Outfit'] text-[#111827]">{formatCurrency(totalRevenue)}</p>
+            <p className="text-sm font-medium text-[#6B7280] uppercase tracking-wider mb-1">Total Ticket Value</p>
+            <p className="text-3xl font-bold font-['Outfit'] text-[#111827]">{formatCurrency(totalTicketValue)}</p>
           </div>
         </div>
       </div>
@@ -96,14 +96,13 @@ export default async function DashboardPage() {
               const progress = Math.min(100, (event.ticketsSold / event.maxCapacity) * 100);
 
               return (
-                <Link 
+                <div 
                   key={event.id}
-                  href={`/dashboard/events/${event.id}`}
-                  className="p-6 hover:bg-gray-50 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4 group"
+                  className="p-6 hover:bg-gray-50 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                 >
-                  <div className="flex-1">
+                  <Link href={`/dashboard/events/${event.id}`} className="flex-1 group">
                     <div className="flex items-center gap-3 mb-1">
-                      <h4 className="font-bold text-[#111827] text-lg font-['Outfit'] truncate">{event.title}</h4>
+                      <h4 className="font-bold text-[#111827] text-lg font-['Outfit'] truncate group-hover:text-[#1A7A4A] transition-colors">{event.title}</h4>
                       <span className={`text-xs font-semibold px-2 py-1 rounded-md uppercase tracking-wider ${statusConfig?.color} bg-gray-50 border border-gray-100`}>
                         {statusConfig?.label || event.status}
                       </span>
@@ -112,7 +111,7 @@ export default async function DashboardPage() {
                       <Calendar className="w-4 h-4" />
                       {formatDate(event.dateTime)} • {event.venue}
                     </p>
-                  </div>
+                  </Link>
 
                   <div className="flex items-center justify-between sm:justify-end gap-6 sm:w-64">
                     <div className="flex-1 max-w-[120px]">
@@ -128,9 +127,19 @@ export default async function DashboardPage() {
                       </div>
                     </div>
                     
-                    <ChevronRight className="w-5 h-5 text-[#9CA3AF] group-hover:text-[#111827] transition-colors" />
+                    <div className="flex items-center gap-2">
+                      <Link 
+                        href={`/dashboard/events/${event.id}/edit`}
+                        className="p-2 text-gray-400 hover:text-[#1A7A4A] transition-colors"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Link>
+                      <Link href={`/dashboard/events/${event.id}`}>
+                        <ChevronRight className="w-5 h-5 text-[#9CA3AF] hover:text-[#111827] transition-colors" />
+                      </Link>
+                    </div>
                   </div>
-                </Link>
+                </div>
               );
             })}
             

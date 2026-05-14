@@ -16,9 +16,28 @@ export default function ScannerPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [eventId, setEventId] = useState<string | null>(null);
   const [eventTitle, setEventTitle] = useState<string>("");
-
   const [scans, setScans] = useState<any[]>([]);
   
+  // Offline State
+  const [manifest, setManifest] = useState<any[]>([]);
+  const [pendingScans, setPendingScans] = useState<any[]>([]);
+  const [lastSync, setLastSync] = useState<string | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  useEffect(() => {
+    if (!eventId) return;
+    const savedManifest = localStorage.getItem(`manifest_${eventId}`);
+    if (savedManifest) {
+      const data = JSON.parse(savedManifest);
+      setManifest(data.tickets);
+      setLastSync(data.timestamp);
+    }
+    const savedPending = localStorage.getItem(`pending_scans_${eventId}`);
+    if (savedPending) {
+      setPendingScans(JSON.parse(savedPending));
+    }
+  }, [eventId]);
+
   const fetchScans = async () => {
     try {
       const session = await getSession();
@@ -29,6 +48,47 @@ export default function ScannerPage() {
       if (data.success) setScans(data.data);
     } catch (error) {
       console.error("Failed to fetch scans:", error);
+    }
+  };
+
+  const handleSync = async () => {
+    if (!eventId || isSyncing) return;
+    setIsSyncing(true);
+    try {
+      const session = await getSession();
+      const res = await fetch(`${BACKEND_URL}/tickets/sync/${eventId}`, {
+        headers: { "Authorization": `Bearer ${session?.accessToken}` },
+      });
+      const json = await res.json();
+      if (json.success) {
+        const timestamp = new Date().toISOString();
+        setManifest(json.data);
+        setLastSync(timestamp);
+        localStorage.setItem(`manifest_${eventId}`, JSON.stringify({ tickets: json.data, timestamp }));
+        
+        // Use new bulk sync endpoint
+        const savedPending = localStorage.getItem(`pending_scans_${eventId}`);
+        if (savedPending) {
+          const pending = JSON.parse(savedPending);
+          if (pending.length > 0) {
+            await fetch(`${BACKEND_URL}/tickets/sync/${eventId}`, {
+              method: "POST",
+              headers: { 
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${session?.accessToken}`
+              },
+              body: JSON.stringify({ scans: pending }),
+            });
+          }
+          setPendingScans([]);
+          localStorage.removeItem(`pending_scans_${eventId}`);
+        }
+        fetchScans();
+      }
+    } catch (error) {
+      console.error("Sync failed:", error);
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -61,12 +121,28 @@ export default function ScannerPage() {
     fetchScans();
   }, [router]);
 
+  const decodeTicketId = (token: string) => {
+    try {
+      const base64Url = token.split(".")[1];
+      const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+      const jsonPayload = decodeURIComponent(
+        atob(base64)
+          .split("")
+          .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+          .join("")
+      );
+      return JSON.parse(jsonPayload).ticketId;
+    } catch (e) {
+      return null;
+    }
+  };
+
   const handleScan = useCallback(async (token: string) => {
     if (isProcessing || scanResult || !eventId) return;
 
     setIsProcessing(true);
     let attempts = 0;
-    const maxAttempts = 3;
+    const maxAttempts = 2;
 
     const validate = async (): Promise<boolean> => {
       try {
@@ -83,33 +159,41 @@ export default function ScannerPage() {
         const json = await res.json();
         
         if (!res.ok || json.success === false) {
-          const msg = json.message;
-          // If it's a known non-transient error, don't retry
-          if (msg === 'Ticket already scanned') {
-            setScanResult({ result: 'ALREADY_USED' });
-            return true;
-          }
-          if (msg === 'Ticket not valid for this event') {
-            setScanResult({ result: 'WRONG_EVENT' });
-            return true;
-          }
-          if (msg === 'Invalid ticket token' || msg === 'Ticket not found' || msg === 'Ticket not valid for entry') {
-            setScanResult({ result: 'INVALID' });
-            return true;
-          }
-          // Otherwise, it might be a network/server issue
-          throw new Error(msg || "Validation failed");
+          setScanResult({ 
+            result: json.result || "INVALID", 
+            message: json.message 
+          });
+          return true;
         }
 
-        const data = json.data;
         setScanResult({
           result: "VALID",
-          buyerName: data.ticket.buyerName,
-          buyerPhone: data.ticket.buyerPhone,
+          buyerName: json.buyerName,
+          buyerPhone: json.buyerPhone,
         });
         fetchScans();
         return true;
       } catch (error) {
+        // Fallback to offline manifest if network error
+        const ticketId = decodeTicketId(token);
+        const ticketInManifest = manifest.find(t => t.id === ticketId);
+
+        if (ticketInManifest) {
+          if (ticketInManifest.status === "SCANNED" || pendingScans.some(s => s.ticketId === ticketId)) {
+            setScanResult({ result: "ALREADY_USED" });
+          } else {
+            setScanResult({
+              result: "VALID",
+              buyerName: ticketInManifest.buyerName,
+              buyerPhone: ticketInManifest.buyerPhone,
+            });
+            const newPending = [...pendingScans, { token, ticketId, scannedAt: new Date().toISOString() }];
+            setPendingScans(newPending);
+            localStorage.setItem(`pending_scans_${eventId}`, JSON.stringify(newPending));
+          }
+          return true;
+        }
+
         console.error(`Attempt ${attempts + 1} failed:`, error);
         return false;
       }
@@ -130,12 +214,11 @@ export default function ScannerPage() {
       }
     }
 
-    // Auto clear after 3 seconds
     setTimeout(() => {
       setScanResult(null);
       setIsProcessing(false);
     }, 3000);
-  }, [eventId, isProcessing, scanResult]);
+  }, [eventId, isProcessing, scanResult, manifest, pendingScans]);
 
   const handleCloseResult = () => {
     setScanResult(null);
@@ -146,17 +229,43 @@ export default function ScannerPage() {
     <div className="min-h-screen bg-[#F8FAF9] flex flex-col">
       {/* Header */}
       <header className="bg-white border-b border-[#E5E7EB] p-4 flex justify-between items-center">
-        <div>
+        <div className="flex-1">
           <h1 className="font-semibold text-[#111827] font-['Outfit'] text-lg">Scanner Portal</h1>
           <p className="text-xs text-[#6B7280]">{eventTitle || "Loading event..."}</p>
         </div>
-        <button 
-          onClick={() => signOut()}
-          className="text-[#6B7280] hover:text-red-600 transition-colors flex items-center gap-2 text-sm font-medium"
-        >
-          <LogOut className="w-4 h-4" />
-          <span>Exit</span>
-        </button>
+        
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleSync}
+            disabled={isSyncing || !eventId}
+            className={`flex flex-col items-end group transition-all ${isSyncing ? "opacity-50" : ""}`}
+          >
+            <div className="flex items-center gap-1.5 text-xs font-bold text-[#1A7A4A] bg-[#F0FDF4] px-2 py-1 rounded-lg border border-[#DCFCE7] group-hover:bg-[#DCFCE7]">
+              <div className={`w-1.5 h-1.5 rounded-full bg-[#1A7A4A] ${isSyncing ? "animate-pulse" : ""}`} />
+              {isSyncing ? "Syncing..." : "Sync Event"}
+            </div>
+            {pendingScans.length > 0 && (
+              <div className="absolute -top-1 -left-1 w-4 h-4 bg-orange-500 text-white text-[9px] flex items-center justify-center rounded-full border-2 border-white animate-bounce">
+                {pendingScans.length}
+              </div>
+            )}
+            {lastSync && (
+              <span className="text-[9px] text-gray-400 mt-1">
+                Last: {new Date(lastSync).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            )}
+          </button>
+
+          <div className="h-8 w-[1px] bg-gray-100 mx-1" />
+
+          <button 
+            onClick={() => signOut()}
+            className="text-[#6B7280] hover:text-red-600 transition-colors p-2"
+            title="Sign Out"
+          >
+            <LogOut className="w-5 h-5" />
+          </button>
+        </div>
       </header>
 
       {/* Main Scanner Area */}
@@ -187,6 +296,12 @@ export default function ScannerPage() {
       </main>
 
       {/* Result Overlay */}
+      {scanResult && (
+        <ScanResult 
+          result={scanResult.result as any}
+          buyerName={scanResult.buyerName}
+          buyerPhone={scanResult.buyerPhone}
+          onClose={handleCloseResult}
         />
       )}
 

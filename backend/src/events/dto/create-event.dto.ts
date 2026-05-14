@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsNumber, IsOptional, IsArray, IsDateString, Min } from 'class-validator';
+import { IsString, IsNotEmpty, IsNumber, IsOptional, IsArray, IsDateString, Min, IsObject } from 'class-validator';
 
 export class CreateEventDto {
   @IsString()
@@ -33,9 +33,6 @@ export class CreateEventDto {
   @Min(1)
   maxCapacity: number;
 
-  @IsArray()
-  @IsString({ each: true })
-  paymentMethods: string[];
 
   // Match-specific fields (all optional)
   @IsString()
@@ -61,4 +58,16 @@ export class CreateEventDto {
   @IsString()
   @IsOptional()
   city?: string;
+
+  // New payment instruction fields
+  @IsString()
+  @IsOptional()
+  paymentInstructions?: string;
+
+  @IsOptional()
+  paymentAccounts?: any; // JSON: [{ type, number, name }]
+
+  @IsNumber()
+  @IsOptional()
+  expectedAmount?: number;
 }

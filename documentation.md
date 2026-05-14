@@ -58,12 +58,21 @@ Implement this exact Prisma schema. Do not deviate from field names as they are 
 
 ```prisma
 model Organizer {
-  id        String   @id @default(cuid())
-  phone     String   @unique
-  name      String
-  createdAt DateTime @default(now())
-  events    Event[]
-  staff     Staff[]
+  id               String   @id @default(cuid())
+  phone            String   @unique
+  name             String
+  slug             String?  @unique
+  bio              String?
+  profilePhoto     String?
+  teamSupported    String?
+  teamColor        String?
+  tiktokUrl        String?
+  instagramUrl     String?
+  telegramUrl      String?
+  isVerified       Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  events           Event[]
+  staff            Staff[]
 }
 
 model Staff {
@@ -94,6 +103,10 @@ model Event {
   paymentMethods  String[]     // ["TELEBIRR", "CBE_BIRR", "MPESA"]
   slug            String       @unique // used in public URL: /events/[slug]
   createdAt       DateTime     @default(now())
+  homeTeam        String?
+  awayTeam        String?
+  competition     String?
+  city            String?
   tickets         Ticket[]
   staffAssignments EventStaff[]
 }
@@ -163,11 +176,31 @@ model ScanLog {
 
 ---
 
+## 4.5 Influencer Lifecycle Policies
+
+- **Admin-Only Provisioning**: Influencers cannot self-register. All influencer accounts are created and managed exclusively by the Super Admin.
+- **Onboarding Notification**: Upon account creation, the influencer must receive an automated welcome SMS with their login link.
+- **Deactivation Protocol**: Deactivating an influencer account (`isActive: false`) must automatically trigger the following:
+  1. Set all upcoming `ACTIVE` events for that influencer to `CANCELLED`.
+  2. Send an SMS notification to all fans who bought tickets for those cancelled events.
+- **Deletion Constraints**: A hard delete of an influencer record is strictly forbidden if the influencer has any associated ticket sales history. In such cases, account suspension (deactivation) must be used instead to preserve financial and attendance records.
+
+---
+
 ## 5. APPLICATION PAGES & ROUTES
 
 Build every route listed below. Routes marked **(protected)** must redirect unauthenticated users to `/login`.
 
 ### 5.1 Public Routes (no login required)
+
+`/` — **Homepage Discovery Feed**
+The main landing page. Displays a feed of upcoming active events, featured influencers, and allows filtering by team or competition.
+
+`/influencers` — **Influencer Directory**
+A searchable list of all verified influencers on the platform, showing their team affiliation and basic stats.
+
+`/influencers/[slug]` — **Influencer Profile**
+Public profile for a specific influencer. Shows their bio, social links, and a list of all their upcoming active events.
 
 `/events/[slug]` — **Public Event Page**
 The fan-facing page for a specific event. Shows: event title, match details, venue, date/time, ticket price, seats remaining (live, updated every 30 seconds via polling or SSE), and a prominent "Buy Ticket" button. If the event is sold out, show a "Sold Out" state. If the event is closed or cancelled, show an appropriate message. This page must load fast and look excellent on a 360px wide mobile screen.
@@ -225,7 +258,7 @@ Implement all of the following API endpoints under `/src/app/api/`.
 
 `POST /api/auth/verify-otp` — Verify the OTP. On success, create a NextAuth session.
 
-`POST /api/tickets/initiate` — Called when a fan clicks "Buy" and submits their phone number. Creates a Transaction record with status PENDING and a Ticket record with status VALID (but qrToken not yet set). Returns a payment redirect URL or payment instructions.
+`POST /api/tickets/initiate` — Called when a fan clicks "Buy" and submits their phone number. This endpoint implements **row-level locking** on the `Event` record within a transaction (`SELECT ... FOR UPDATE`) to prevent race conditions during capacity checks. It creates a Transaction record and a Ticket record with status `PENDING`. Returns a Chapa checkout URL. To minimize lock duration, the external payment initialization is performed after the database transaction is committed.
 
 `POST /api/webhooks/telebirr` — Telebirr calls this endpoint when payment is confirmed. Validate the webhook signature. Find the matching Transaction by providerRef. Set Transaction status to CONFIRMED. Generate the signed QR JWT and set it on the Ticket. Send the ticket URL to the buyer via SMS. Return 200 to Telebirr. This endpoint must be idempotent — calling it twice for the same transaction must not issue two tickets.
 
@@ -240,6 +273,8 @@ Implement all of the following API endpoints under `/src/app/api/`.
 `POST /api/events/[eventId]/staff` — Assigns a staff member to an event. Organizer only.
 
 `DELETE /api/events/[eventId]/staff/[staffId]` — Removes staff assignment. Organizer only.
+
+`POST /api/admin/influencers` — Creates a new influencer account. Super Admin only. Must automatically call Chapa's `POST /v1/subaccount` API using the provided `bankCode` and `accountNumber` to generate and save a `chapaSubaccountId` on the influencer record. This enables automatic split payments.
 
 ---
 
@@ -334,6 +369,18 @@ Network failure on scan page — If the validate API call fails due to network e
 
 ---
 
+## 11.5 OFFLINE SCANNING & SYNCHRONIZATION
+
+To handle venues with poor connectivity, the scanning system must support an offline fallback mode:
+
+1. **Pre-event Sync**: Before the event starts, staff should click "Sync" to download the **Ticket Manifest** (a list of all issued ticket IDs for that event).
+2. **Offline Validation**: If the validation API is unreachable, the scanner will check the scanned QR's `ticketId` against the local manifest. If present and not already marked as scanned *locally*, the ticket is accepted.
+3. **Pending Queue**: Offline scans are stored in a local queue (IndexedDB or LocalStorage) with a timestamp.
+4. **Auto-Sync**: The app will periodically attempt to upload the pending queue to the server. Once the server confirms receipt, the local queue is cleared.
+5. **Conflict Resolution**: If an offline scan is synced but the server finds the ticket was already scanned elsewhere, the server record remains the source of truth, but the event log will flag the duplicate entry for investigation.
+
+---
+
 ## 12. ENVIRONMENT VARIABLES
 
 Document all of the following in `.env.example` with placeholder values and a comment explaining each one.
@@ -363,6 +410,11 @@ AT_SENDER_ID=FanPass
 
 # App
 NEXT_PUBLIC_APP_URL=http://localhost:3000
+
+# Chapa
+CHAPA_SECRET_KEY=
+CHAPA_WEBHOOK_SECRET=
+CHAPA_SUBACCOUNT_API=https://api.chapa.co/v1/subaccount
 ```
 
 ---
@@ -382,6 +434,10 @@ fanpass/
 ├── src/
 │   ├── app/                       # Next.js App Router
 │   │   ├── (public)/
+│   │   │   ├── page.tsx           # Homepage Feed
+│   │   │   ├── influencers/
+│   │   │   │   ├── page.tsx       # Directory
+│   │   │   │   └── [slug]/page.tsx# Profile
 │   │   │   ├── events/[slug]/
 │   │   │   │   ├── page.tsx       # Public event page
 │   │   │   │   └── buy/page.tsx   # Ticket purchase page

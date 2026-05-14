@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Body, Param, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards, Request } from '@nestjs/common';
 import { StaffService } from './staff.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
@@ -35,6 +35,20 @@ export class StaffController {
   @Delete('events/:eventId/staff/:staffId')
   async unassignStaff(@Request() req, @Param('eventId') eventId: string, @Param('staffId') staffId: string) {
     return this.staffService.unassignEvent(req.user.id, req.user.role, eventId, staffId);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ORGANIZER', 'SUPER_ADMIN')
+  @Patch('staff/:id')
+  async updateStaff(@Request() req, @Param('id') id: string, @Body() body: any) {
+    return this.staffService.updateStaff(req.user.id, req.user.role, id, body);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ORGANIZER', 'SUPER_ADMIN')
+  @Delete('staff/:id')
+  async deleteStaff(@Request() req, @Param('id') id: string) {
+    return this.staffService.deleteStaff(req.user.id, req.user.role, id);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

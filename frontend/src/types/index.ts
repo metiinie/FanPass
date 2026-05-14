@@ -10,10 +10,54 @@ export interface EventWithStats {
   maxCapacity: number;
   ticketsSold: number;
   status: string;
-  paymentMethods: string[];
+  paymentInstructions?: string | null;
+  paymentAccounts?: any;
+  expectedAmount?: number | null;
   slug: string;
   createdAt: string;
   organizerId: string;
+}
+
+export type VerificationStatus = "PENDING_EXTRACTION" | "EXTRACTED_HIGH_CONFIDENCE" | "EXTRACTED_LOW_CONFIDENCE" | "MANUAL_REVIEW_REQUIRED" | "VERIFIED" | "REJECTED";
+
+export interface ReceiptExtraction {
+  amount: number | null;
+  currency: string | null;
+  senderName: string | null;
+  date: string | null;
+  transactionRef: string | null;
+  confidence: number;
+  flags: string[];
+  amountMatch?: boolean;
+}
+
+export interface SubmissionListItem {
+  id: string;
+  buyerName: string | null;
+  buyerPhone: string;
+  ticketCount: number;
+  issuedAt: string;
+  screenshotUrl: string | null;
+  extractedAmount: number | null;
+  extractedSenderName: string | null;
+  extractedDate: string | null;
+  extractedRef: string | null;
+  aiConfidenceScore: number | null;
+  verificationStatus: VerificationStatus;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
+  rejectionReason: string | null;
+  imageHash: string | null;
+  smsStatus?: "PENDING" | "SENT" | "FAILED" | null;
+  smsRetryCount?: number;
+  lastSmsAttempt?: string | null;
+  smsError?: string | null;
+  event: {
+    expectedAmount: number | null;
+    ticketPrice: number;
+    currency: string;
+    title: string;
+  };
 }
 
 export interface TicketDisplay {
@@ -23,6 +67,8 @@ export interface TicketDisplay {
   buyerName: string | null;
   qrToken: string | null;
   status: string;
+  verificationStatus: VerificationStatus;
+  rejectionReason?: string | null;
   issuedAt: string;
   scannedAt: string | null;
   event: {
@@ -44,9 +90,16 @@ export interface ScanResult {
 export interface EventStats {
   ticketsSold: number;
   maxCapacity: number;
-  totalRevenue: number;
+  totalSalesValue: number;
   attendeesEntered: number;
   recentScans: ScanLogEntry[];
+  submissions?: {
+    pending: number;
+    flagged: number;
+    approved: number;
+    rejected: number;
+    needsReview: number;
+  };
 }
 
 export interface ScanLogEntry {

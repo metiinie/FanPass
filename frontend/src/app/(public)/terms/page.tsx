@@ -52,7 +52,7 @@ export default function TermsPage() {
               <p>
                 Refunds are subject to the specific organizer's policy. Generally, tickets are non-refundable 
                 unless the event is cancelled or rescheduled. In the event of cancellation, refunds will be 
-                processed back through the original payment method (Telebirr, M-Pesa, etc.).
+                processed back through the original payment method (Bank Transfer, etc.).
               </p>
             </section>
 

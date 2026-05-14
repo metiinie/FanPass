@@ -4,10 +4,12 @@ import { AuthController } from './auth.controller';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { JwtStrategy } from './jwt.strategy';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
     PassportModule,
+    NotificationsModule,
     JwtModule.registerAsync({
       useFactory: () => {
         const secret = process.env.NEXTAUTH_SECRET;
