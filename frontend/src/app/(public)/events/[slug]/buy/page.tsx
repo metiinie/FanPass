@@ -174,7 +174,7 @@ export default function TicketPurchasePage({ params }: { params: { slug: string 
 
               {event.paymentAccounts && Array.isArray(event.paymentAccounts) && (
                 <div className="space-y-3">
-                  {event.paymentAccounts.map((account: any, idx: number) => (
+                  {event.paymentAccounts.map((account: { type: string; number: string; name?: string }, idx: number) => (
                     <div key={idx} className="flex items-center justify-between p-4 rounded-xl border border-[#E5E7EB] hover:border-[#1A7A4A]/30 transition-colors bg-gray-50/50">
                       <div>
                         <p className="text-xs font-semibold text-[#6B7280] uppercase tracking-wider mb-1">{account.type}</p>

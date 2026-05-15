@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { Camera, Save, CheckCircle, AlertCircle, ExternalLink, Loader2 } from "lucide-react";
 import { fetchBackend } from "@/lib/apiClient";
+import { Influencer } from "@/types";
 
 const TEAM_OPTIONS = [
   { label: "Arsenal", color: "#EF0107" },
@@ -21,8 +22,8 @@ const TEAM_OPTIONS = [
 
 export default function InfluencerProfilePage() {
   const { data: session } = useSession();
-  const [profile, setProfile] = useState<any>(null);
-  const [form, setForm] = useState<any>({});
+  const [profile, setProfile] = useState<Influencer | null>(null);
+  const [form, setForm] = useState<Partial<Influencer>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -83,7 +84,7 @@ export default function InfluencerProfilePage() {
       const uploadData = await uploadRes.json();
 
       if (uploadData.secure_url) {
-        setForm((f: any) => ({ ...f, profilePhoto: uploadData.secure_url }));
+        setForm((f: Partial<Influencer>) => ({ ...f, profilePhoto: uploadData.secure_url }));
       } else {
         setError("Photo upload failed. Please try again.");
       }
@@ -205,7 +206,7 @@ export default function InfluencerProfilePage() {
           <label className="text-sm font-medium text-[#374151]">Display Name</label>
           <input
             value={form.name || ""}
-            onChange={(e) => setForm((f: any) => ({ ...f, name: e.target.value }))}
+            onChange={(e) => setForm((f: Partial<Influencer>) => ({ ...f, name: e.target.value }))}
             className="w-full border-2 border-[#E5E7EB] rounded-xl px-4 py-3 text-[#111827] focus:border-[#1A7A4A] outline-none transition-colors"
             placeholder="Your name as fans will see it"
           />
@@ -218,7 +219,7 @@ export default function InfluencerProfilePage() {
           </label>
           <input
             value={form.slug || ""}
-            onChange={(e) => setForm((f: any) => ({ ...f, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-") }))}
+            onChange={(e) => setForm((f: Partial<Influencer>) => ({ ...f, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-") }))}
             className="w-full border-2 border-[#E5E7EB] rounded-xl px-4 py-3 text-[#111827] focus:border-[#1A7A4A] outline-none transition-colors font-mono text-sm"
             placeholder="your-name"
           />
@@ -229,7 +230,7 @@ export default function InfluencerProfilePage() {
           <label className="text-sm font-medium text-[#374151]">Bio / Tagline</label>
           <textarea
             value={form.bio || ""}
-            onChange={(e) => setForm((f: any) => ({ ...f, bio: e.target.value }))}
+            onChange={(e) => setForm((f: Partial<Influencer>) => ({ ...f, bio: e.target.value }))}
             rows={3}
             className="w-full border-2 border-[#E5E7EB] rounded-xl px-4 py-3 text-[#111827] focus:border-[#1A7A4A] outline-none transition-colors resize-none"
             placeholder="e.g. Addis Ababa's loudest Arsenal fan. Watch parties every big game."
@@ -244,7 +245,7 @@ export default function InfluencerProfilePage() {
           {TEAM_OPTIONS.map((team) => (
             <button
               key={team.label}
-              onClick={() => setForm((f: any) => ({ ...f, teamSupported: team.label, teamColor: team.color }))}
+              onClick={() => setForm((f: Partial<Influencer>) => ({ ...f, teamSupported: team.label, teamColor: team.color }))}
               className={`p-3 rounded-xl border-2 text-sm font-semibold transition-all ${
                 form.teamSupported === team.label
                   ? "border-transparent text-white shadow-md"
@@ -269,8 +270,8 @@ export default function InfluencerProfilePage() {
           <div key={key} className="space-y-1">
             <label className="text-sm font-medium text-[#374151]">{label}</label>
             <input
-              value={form[key] || ""}
-              onChange={(e) => setForm((f: any) => ({ ...f, [key]: e.target.value }))}
+              value={(form as any)[key] || ""}
+              onChange={(e) => setForm((f: Partial<Influencer>) => ({ ...f, [key]: e.target.value }))}
               className="w-full border-2 border-[#E5E7EB] rounded-xl px-4 py-3 text-[#111827] focus:border-[#1A7A4A] outline-none transition-colors text-sm"
               placeholder={placeholder}
             />

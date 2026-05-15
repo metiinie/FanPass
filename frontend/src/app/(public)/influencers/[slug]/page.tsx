@@ -2,7 +2,8 @@ import { fetchBackend } from "@/lib/apiClient";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { BadgeCheck, Calendar, MapPin, ArrowRight, ExternalLink, Ticket, Users, Trophy } from "lucide-react";
+import { Influencer, InfluencerEvent } from "@/types";
+import { BadgeCheck, Calendar, MapPin, ArrowRight, Ticket, Users, Trophy } from "lucide-react";
 
 export const revalidate = 60;
 
@@ -19,7 +20,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 }
 
 export default async function InfluencerProfilePage({ params }: { params: { slug: string } }) {
-  let inf: any = null;
+  let inf: Influencer | null = null;
   try {
     inf = await fetchBackend(`/influencers/${params.slug}`, { requireAuth: false });
   } catch {
@@ -27,10 +28,10 @@ export default async function InfluencerProfilePage({ params }: { params: { slug
   }
 
   const upcomingEvents = (inf.events || []).filter(
-    (e: any) => e.status === "ACTIVE" && new Date(e.dateTime) > new Date()
+    (e: InfluencerEvent) => e.status === "ACTIVE" && new Date(e.dateTime) > new Date()
   );
   const pastEvents = (inf.events || []).filter(
-    (e: any) => e.status === "CLOSED" || new Date(e.dateTime) <= new Date()
+    (e: InfluencerEvent) => e.status === "CLOSED" || new Date(e.dateTime) <= new Date()
   );
 
   return (
@@ -52,6 +53,7 @@ export default async function InfluencerProfilePage({ params }: { params: { slug
               style={{ backgroundColor: inf.teamColor || "var(--primary)", borderColor: "var(--bg)" }}
             >
               {inf.profilePhoto ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
                 <img src={inf.profilePhoto} alt={inf.name} className="w-full h-full object-cover" />
               ) : (
                 inf.name.charAt(0).toUpperCase()
@@ -151,7 +153,7 @@ export default async function InfluencerProfilePage({ params }: { params: { slug
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {upcomingEvents.map((event: any) => {
+              {upcomingEvents.map((event: InfluencerEvent) => {
                 const seatsLeft = event.maxCapacity - event.ticketsSold;
                 const isSoldOut = seatsLeft <= 0;
                 
@@ -226,7 +228,7 @@ export default async function InfluencerProfilePage({ params }: { params: { slug
           <section>
             <h2 className="text-2xl font-black text-white tracking-tighter mb-8 uppercase tracking-[0.1em] opacity-50">Past Experiences</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-              {pastEvents.slice(0, 6).map((event: any) => (
+              {pastEvents.slice(0, 6).map((event: InfluencerEvent) => (
                 <div
                   key={event.id}
                   className="glass-card rounded-[2rem] p-6 opacity-60 hover:opacity-100 transition-all group"

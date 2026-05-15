@@ -5,6 +5,7 @@ import { fetchBackend } from "@/lib/apiClient";
 import Link from "next/link";
 import { Calendar, Ticket, Wallet, ChevronRight, Plus, Edit } from "lucide-react";
 import { redirect } from "next/navigation";
+import { InfluencerEvent } from "@/types";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -20,8 +21,8 @@ export default async function DashboardPage() {
   }
 
   const totalEvents = events.length;
-  const totalTicketsSold = events.reduce((sum: number, e: any) => sum + e.ticketsSold, 0);
-  const totalTicketValue = events.reduce((sum: number, e: any) => sum + (e.ticketsSold * e.ticketPrice), 0);
+  const totalTicketsSold = events.reduce((sum: number, e: InfluencerEvent) => sum + e.ticketsSold, 0);
+  const totalTicketValue = events.reduce((sum: number, e: InfluencerEvent) => sum + (e.ticketsSold * e.ticketPrice), 0);
 
   return (
     <div className="space-y-12 animate-in fade-in duration-500 font-outfit text-white">
@@ -91,7 +92,7 @@ export default async function DashboardPage() {
           </div>
         ) : (
           <div className="bg-brand-surface rounded-[2.5rem] border border-white/5 shadow-2xl overflow-hidden flex flex-col divide-y divide-white/5">
-            {events.slice(0, 5).map((event: any) => {
+            {events.slice(0, 5).map((event: InfluencerEvent) => {
               const statusConfig = EVENT_STATUS_LABELS[event.status];
               const progress = Math.min(100, (event.ticketsSold / event.maxCapacity) * 100);
 

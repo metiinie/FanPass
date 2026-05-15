@@ -7,11 +7,11 @@ import { VERIFICATION_STATUS_LABELS, REJECTION_REASONS } from "@/lib/constants";
 import { Loader2, CheckCircle2, XCircle, AlertTriangle, ArrowLeft, RefreshCw, ZoomIn } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
-import type { SubmissionListItem } from "@/types";
+import { SubmissionListItem, GlobalApprovalStats } from "@/types";
 
 export default function AdminApprovalsDashboard() {
   const [submissions, setSubmissions] = useState<SubmissionListItem[]>([]);
-  const [stats, setStats] = useState<any>(null);
+  const [stats, setStats] = useState<GlobalApprovalStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"needs_review" | "approved" | "rejected">("needs_review");
   const [selectedItem, setSelectedItem] = useState<SubmissionListItem | null>(null);
@@ -30,7 +30,7 @@ export default function AdminApprovalsDashboard() {
       setStats(statsData);
       
       if (selectedItem) {
-        const stillExists = submissionsData.submissions.find((s: any) => s.id === selectedItem.id);
+        const stillExists = submissionsData.submissions.find((s: SubmissionListItem) => s.id === selectedItem.id);
         if (stillExists) setSelectedItem(stillExists);
         else setSelectedItem(submissionsData.submissions[0] || null);
       } else if (submissionsData.submissions.length > 0) {

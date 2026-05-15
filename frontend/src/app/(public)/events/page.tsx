@@ -1,5 +1,5 @@
 import { fetchBackend } from "@/lib/apiClient";
-import { Influencer } from "@/types";
+import { Influencer, EventWithInfluencer } from "@/types";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { MapPin, ChevronRight, Search, BadgeCheck, ArrowRight, Ticket } from "lucide-react";
 import Link from "next/link";
@@ -94,10 +94,8 @@ export default async function EventsListPage({
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 mt-12">
-            {events.map((event: any) => {
+            {events.map((event: EventWithInfluencer) => {
               const inf = event.influencer;
-              const seatsLeft = event.maxCapacity - event.ticketsSold;
-              const seatsPercent = Math.min(100, (event.ticketsSold / event.maxCapacity) * 100);
 
               return (
                 <Link

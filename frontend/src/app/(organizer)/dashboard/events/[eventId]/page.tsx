@@ -21,14 +21,15 @@ import {
 import Link from "next/link";
 import { fetchBackend } from "@/lib/apiClient";
 import { toast } from "sonner";
+import { EventWithStats, EventStats, ScanLogEntry } from "@/types";
 
 export default function EventDashboardPage({ params }: { params: { eventId: string } }) {
   const router = useRouter();
-  const [event, setEvent] = useState<any>(null);
-  const [stats, setStats] = useState<any>(null);
+  const [event, setEvent] = useState<EventWithStats | null>(null);
+  const [stats, setStats] = useState<EventStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
-  const [submissionsStatus, setSubmissionsStatus] = useState<any>(null);
+  const [submissionsStatus, setSubmissionsStatus] = useState<{ needsReview: number } | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelForm, setCancelForm] = useState({
     refundPolicy: "Full refund will be provided. Please contact the organizer with your ticket ID and payment receipt.",
@@ -394,7 +395,7 @@ export default function EventDashboardPage({ params }: { params: { eventId: stri
                     </td>
                   </tr>
                 ) : (
-                  stats?.recentScans.map((scan: any) => {
+                  stats?.recentScans.map((scan: ScanLogEntry) => {
                     const resultConfig = SCAN_RESULT_LABELS[scan.result] || SCAN_RESULT_LABELS.INVALID;
                     return (
                       <tr key={scan.id} className="hover:bg-gray-50/50 transition-colors group">
@@ -438,7 +439,7 @@ export default function EventDashboardPage({ params }: { params: { eventId: stri
             </div>
             
             <div className="space-y-4">
-              {stats?.staff && stats.staff.length > 0 ? stats.staff.map((s: any) => (
+              {stats?.staff && stats.staff.length > 0 ? stats.staff.map((s: { id: string; name: string }) => (
                 <div key={s.id} className="flex items-center justify-between group">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-[10px] font-bold text-gray-500 group-hover:bg-[#1A7A4A]/10 group-hover:text-[#1A7A4A] transition-colors">

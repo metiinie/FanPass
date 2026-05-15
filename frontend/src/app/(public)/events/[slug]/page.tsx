@@ -3,6 +3,7 @@ import Link from "next/link";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
 import { EVENT_STATUS_LABELS } from "@/lib/constants";
 import { fetchBackend } from "@/lib/apiClient";
+import { EventWithStats } from "@/types";
 import {
   MapPin,
   Calendar,
@@ -19,7 +20,7 @@ import {
 export const revalidate = 30;
 
 export default async function EventPage({ params }: { params: { slug: string } }) {
-  let event: any = null;
+  let event: EventWithStats | null = null;
   try {
     event = await fetchBackend(`/events/public/${params.slug}`, { requireAuth: false });
   } catch (error) {

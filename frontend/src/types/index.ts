@@ -58,6 +58,19 @@ export interface SubmissionListItem {
     currency: string;
     title: string;
   };
+  aiRawText?: string | null;
+}
+
+export interface AdminStats {
+  totalEvents: number;
+  totalTicketsSold: number;
+  totalSalesValue: number;
+  totalInfluencers: number;
+}
+
+export interface GlobalApprovalStats {
+  needsReview: number;
+  avgApprovalMinutes: number;
 }
 
 export interface TicketDisplay {
@@ -104,6 +117,7 @@ export interface EventStats {
     rejected: number;
     needsReview: number;
   };
+  staff?: { id: string; name: string }[];
 }
 
 export interface ScanLogEntry {
@@ -119,7 +133,7 @@ export interface StaffMember {
   id: string;
   name: string;
   phone: string;
-  assignments: { eventId: string; eventTitle: string }[];
+  assignments: { eventId: string; event: { id: string; title: string; status: string } }[];
 }
 
 export type UserRole = "ORGANIZER" | "STAFF" | "SUPER_ADMIN";
@@ -128,11 +142,53 @@ export interface Influencer {
   id: string;
   name: string;
   slug: string;
+  bio?: string | null;
   profilePhoto?: string | null;
   teamSupported?: string | null;
   teamColor?: string | null;
   isVerified: boolean;
+  isActive: boolean;
+  createdAt: string;
+  tiktokUrl?: string | null;
+  instagramUrl?: string | null;
+  telegramUrl?: string | null;
   totalTicketsSold: number;
+  events?: InfluencerEvent[];
+  _count?: {
+    events: number;
+  };
+}
+
+export interface InfluencerEvent {
+  id: string;
+  title: string;
+  slug: string;
+  dateTime: string;
+  status: string;
+  competition?: string | null;
+  homeTeam?: string | null;
+  awayTeam?: string | null;
+  ticketPrice: number;
+  currency: string;
+  ticketsSold: number;
+  maxCapacity: number;
+  venue?: string | null;
+  city?: string | null;
+  paymentInstructions?: string | null;
+  paymentAccounts?: { type: string; number: string; name?: string }[] | null;
+}
+
+export interface EventWithStats extends InfluencerEvent {
+  stats: EventStats;
+  influencer: {
+    id: string;
+    name: string;
+    profilePhoto: string | null;
+  };
+}
+
+export interface EventWithInfluencer extends InfluencerEvent {
+  influencer?: Influencer;
 }
 
 export interface SessionUser {

@@ -28,7 +28,7 @@ export default function ApprovalsDashboard({ params }: { params: { eventId: stri
       
       // Update selected item if it's still in the list, otherwise deselect or select first
       if (selectedItem) {
-        const stillExists = data.submissions.find((s: any) => s.id === selectedItem.id);
+        const stillExists = data.submissions.find((s: SubmissionListItem) => s.id === selectedItem.id);
         if (stillExists) setSelectedItem(stillExists);
         else setSelectedItem(data.submissions[0] || null);
       } else if (data.submissions.length > 0) {

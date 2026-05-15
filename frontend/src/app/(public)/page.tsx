@@ -166,10 +166,10 @@ export default async function Home({
                     className="relative overflow-hidden z-10 h-64"
                     style={{ backgroundColor: inf?.teamColor ? `${inf.teamColor}20` : "#101613" }}
                   >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img 
                       src={event.coverImage || "https://images.unsplash.com/photo-1518605368461-1ee7c511d51c?q=80&w=1000&auto=format&fit=crop"} 
                       alt={event.title} 
-                      /* eslint-disable-next-line @next/next/no-img-element */
                       className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:scale-110 group-hover:opacity-80 transition-all duration-700" 
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-brand-surface via-transparent to-transparent" />

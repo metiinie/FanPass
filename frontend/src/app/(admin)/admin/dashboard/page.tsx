@@ -11,11 +11,11 @@ export default async function AdminDashboardPage() {
     redirect("/login");
   }
 
-  let stats: any = {
+  let stats: AdminStats = {
     totalEvents: 0,
     totalTicketsSold: 0,
     totalSalesValue: 0,
-    totalOrganizers: 0
+    totalInfluencers: 0
   };
 
   try {

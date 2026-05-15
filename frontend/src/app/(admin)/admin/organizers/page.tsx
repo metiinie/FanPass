@@ -8,14 +8,15 @@ import {
   Plus, Edit2, Trash2, X, Info
 } from "lucide-react";
 import { toast } from "sonner";
+import { Influencer } from "@/types";
 
 export default function InfluencersPage() {
-  const [influencers, setInfluencers] = useState<any[]>([]);
+  const [influencers, setInfluencers] = useState<Influencer[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [editingInfluencer, setEditingInfluencer] = useState<any>(null);
+  const [editingInfluencer, setEditingInfluencer] = useState<Influencer | null>(null);
   
   const [formData, setFormData] = useState({
     name: "",
@@ -68,7 +69,7 @@ export default function InfluencersPage() {
     }
   };
 
-  const openEdit = (influencer: any) => {
+  const openEdit = (influencer: Influencer) => {
     setEditingInfluencer(influencer);
     setFormData({
       name: influencer.name,
@@ -104,7 +105,7 @@ export default function InfluencersPage() {
     }
   };
 
-  const filteredInfluencers = influencers.filter(o => 
+  const filteredInfluencers = influencers.filter((o: Influencer) => 
     o.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     o.phone.includes(searchTerm)
   );
@@ -168,7 +169,7 @@ export default function InfluencersPage() {
                   <td colSpan={6} className="px-6 py-12 text-center text-[#6B7280]">No influencers found</td>
                 </tr>
               ) : (
-                filteredInfluencers.map((o) => (
+                filteredInfluencers.map((o: Influencer) => (
                   <tr key={o.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">

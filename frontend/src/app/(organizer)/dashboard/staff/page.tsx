@@ -6,10 +6,11 @@ import { maskPhone } from "@/lib/utils";
 import { useSession } from "next-auth/react";
 import { fetchBackend } from "@/lib/apiClient";
 import { toast } from "sonner";
+import { StaffMember, InfluencerEvent } from "@/types";
 
 export default function StaffManagementPage() {
-  const [staff, setStaff] = useState<any[]>([]);
-  const [events, setEvents] = useState<any[]>([]);
+  const [staff, setStaff] = useState<StaffMember[]>([]);
+  const [events, setEvents] = useState<InfluencerEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -30,7 +31,7 @@ export default function StaffManagementPage() {
       ]);
 
       setStaff(staffData);
-      setEvents(eventsData.filter((e: any) => e.status === "ACTIVE" || e.status === "DRAFT"));
+      setEvents(eventsData.filter((e: InfluencerEvent) => e.status === "ACTIVE" || e.status === "DRAFT"));
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -75,7 +76,7 @@ export default function StaffManagementPage() {
     }
   };
 
-  const handleEditStaff = (member: any) => {
+  const handleEditStaff = (member: StaffMember) => {
     setEditingStaffId(member.id);
     setFormData({
       name: member.name,
@@ -227,7 +228,7 @@ export default function StaffManagementPage() {
                   No staff members added yet.
                 </div>
               ) : (
-                staff.map((member) => (
+                staff.map((member: StaffMember) => (
                   <div key={member.id} className="p-6 hover:bg-gray-50 transition-colors flex flex-col sm:flex-row gap-6 justify-between">
                     <div>
                       <h4 className="font-bold text-[#111827] flex items-center gap-2">
@@ -257,7 +258,7 @@ export default function StaffManagementPage() {
                         <span className="text-sm text-gray-400 italic">No events assigned</span>
                       ) : (
                         <div className="space-y-2">
-                          {member.assignments.map((assignment: any) => (
+                          {member.assignments.map((assignment: { eventId: string; event: { id: string; title: string; status: string } }) => (
                             <div key={assignment.eventId} className="flex items-center justify-between bg-white border border-gray-200 rounded-lg px-3 py-1.5 shadow-sm">
                               <span className="text-sm font-medium text-[#111827] truncate mr-2" title={assignment.event.title}>
                                 {assignment.event.title}
