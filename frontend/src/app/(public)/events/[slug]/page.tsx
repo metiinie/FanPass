@@ -12,7 +12,8 @@ import {
   Trophy,
   Clock,
   Ticket,
-  ChevronLeft
+  ChevronLeft,
+  ArrowRight
 } from "lucide-react";
 
 export const revalidate = 30;
@@ -256,6 +257,7 @@ export default async function EventPage({ params }: { params: { slug: string } }
              </div>
           </div>
 
+        </div>
         </div>
       </div>
 
