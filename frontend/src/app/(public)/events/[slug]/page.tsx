@@ -45,6 +45,7 @@ export default async function EventPage({ params }: { params: { slug: string } }
 
       {/* Hero Background */}
       <div className="relative h-[50vh] md:h-[60vh] min-h-[400px] w-full">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img 
           src={event.coverImage || "https://images.unsplash.com/photo-1518605368461-1ee7c511d51c?q=80&w=2000&auto=format&fit=crop"} 
           alt={event.title} 
@@ -115,6 +116,7 @@ export default async function EventPage({ params }: { params: { slug: string } }
                   style={{ borderColor: inf.teamColor || "var(--primary)" }}
                 >
                   {inf.profilePhoto ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
                     <img src={inf.profilePhoto} alt={inf.name} className="w-full h-full object-cover" />
                   ) : (
                     <span className="text-white font-bold text-xl">{inf.name.charAt(0).toUpperCase()}</span>

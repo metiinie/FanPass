@@ -1,4 +1,5 @@
 import { fetchBackend } from "@/lib/apiClient";
+import { Influencer } from "@/types";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { MapPin, ChevronRight, Search, BadgeCheck, ArrowRight, Ticket } from "lucide-react";
 import Link from "next/link";
@@ -66,7 +67,7 @@ export default async function EventsListPage({
             >
               All Events
             </Link>
-            {allInfluencers.map((inf: any) => (
+            {allInfluencers.map((inf: Influencer) => (
               <Link
                 key={inf.id}
                 href={`/events?influencer=${encodeURIComponent(inf.id)}`}
@@ -109,6 +110,7 @@ export default async function EventsListPage({
                     className="relative overflow-hidden z-10 h-64"
                     style={{ backgroundColor: inf?.teamColor ? `${inf.teamColor}20` : "#101613" }}
                   >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img 
                       src={event.coverImage || "https://images.unsplash.com/photo-1518605368461-1ee7c511d51c?q=80&w=1000&auto=format&fit=crop"} 
                       alt={event.title} 
@@ -167,6 +169,7 @@ export default async function EventsListPage({
                             style={{ borderColor: inf.teamColor || "var(--primary)" }}
                           >
                             {inf.profilePhoto ? (
+                              /* eslint-disable-next-line @next/next/no-img-element */
                               <img src={inf.profilePhoto} alt={inf.name} className="w-full h-full object-cover" />
                             ) : (
                               <span className="text-white font-bold">{inf.name.charAt(0).toUpperCase()}</span>

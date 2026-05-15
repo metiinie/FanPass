@@ -48,7 +48,7 @@ export default async function Home({
         <div className="max-w-7xl mx-auto px-6 relative z-10 text-center flex flex-col items-center">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand-neon/10 border border-brand-neon/20 text-brand-neon text-sm font-semibold mb-8 animate-fade-in">
             <Zap className="w-3.5 h-3.5 fill-current" />
-            <span>Ethiopia's #1 Watch Party App</span>
+            <span>Ethiopia&apos;s #1 Watch Party App</span>
           </div>
 
           <h1 className="text-5xl md:text-7xl font-bold text-white font-outfit tracking-tight leading-[1.05] mb-6 max-w-4xl animate-slide-up" style={{animationDelay: '100ms'}}>
@@ -169,6 +169,7 @@ export default async function Home({
                     <img 
                       src={event.coverImage || "https://images.unsplash.com/photo-1518605368461-1ee7c511d51c?q=80&w=1000&auto=format&fit=crop"} 
                       alt={event.title} 
+                      /* eslint-disable-next-line @next/next/no-img-element */
                       className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:scale-110 group-hover:opacity-80 transition-all duration-700" 
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-brand-surface via-transparent to-transparent" />
@@ -224,6 +225,7 @@ export default async function Home({
                             style={{ borderColor: inf.teamColor || "var(--primary)" }}
                           >
                             {inf.profilePhoto ? (
+                              /* eslint-disable-next-line @next/next/no-img-element */
                               <img src={inf.profilePhoto} alt={inf.name} className="w-full h-full object-cover" />
                             ) : (
                               <span className="text-white font-bold">{inf.name.charAt(0).toUpperCase()}</span>
@@ -300,6 +302,7 @@ export default async function Home({
                     style={{ borderColor: inf.teamColor || "var(--primary)" }}
                   >
                     {inf.profilePhoto ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
                       <img src={inf.profilePhoto} alt={inf.name} className="w-full h-full object-cover" />
                     ) : (
                       inf.name.charAt(0).toUpperCase()

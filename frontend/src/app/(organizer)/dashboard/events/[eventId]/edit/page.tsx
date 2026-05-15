@@ -210,6 +210,7 @@ export default function EditEventPage({ params }: { params: { eventId: string } 
                         formData.coverImage === url ? "border-[#1A7A4A] ring-2 ring-[#1A7A4A]/20" : "border-transparent opacity-60 hover:opacity-100"
                       }`}
                     >
+                      /* eslint-disable-next-line @next/next/no-img-element */
                       <img src={url} alt="Preset" className="w-full h-full object-cover" />
                     </button>
                   ))}
@@ -225,6 +226,7 @@ export default function EditEventPage({ params }: { params: { eventId: string } 
                   />
                   {formData.coverImage && (
                     <div className="mt-2 aspect-video w-full max-w-[200px] rounded-xl overflow-hidden border border-gray-200">
+                      /* eslint-disable-next-line @next/next/no-img-element */
                       <img src={formData.coverImage} alt="Preview" className="w-full h-full object-cover" onError={(e) => (e.currentTarget.style.display = 'none')} />
                     </div>
                   )}
@@ -345,7 +347,7 @@ export default function EditEventPage({ params }: { params: { eventId: string } 
                       </div>
                     ))}
                     {formData.paymentAccounts.length === 0 && (
-                      <p className="text-sm text-gray-500 text-center py-4 border-2 border-dashed rounded-xl">No accounts added. Fans won't know where to send money.</p>
+                      <p className="text-sm text-gray-500 text-center py-4 border-2 border-dashed rounded-xl">No accounts added. Fans won&apos;t know where to send money.</p>
                     )}
                   </div>
                 </div>

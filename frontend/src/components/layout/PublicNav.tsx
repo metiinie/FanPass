@@ -201,6 +201,7 @@ export default function PublicNav() {
                         style={{ borderColor: inf.teamColor || "var(--primary)" }}
                       >
                         {inf.profilePhoto ? (
+                          /* eslint-disable-next-line @next/next/no-img-element */
                           <img src={inf.profilePhoto} alt={inf.name} className="w-full h-full object-cover" />
                         ) : (
                           <span

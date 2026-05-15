@@ -1,4 +1,5 @@
 import { fetchBackend } from "@/lib/apiClient";
+import { Influencer } from "@/types";
 import Link from "next/link";
 import { BadgeCheck, Search, Users } from "lucide-react";
 
@@ -15,7 +16,7 @@ export default async function InfluencersPage({
   searchParams: { search?: string };
 }) {
   const search = searchParams?.search || "";
-  let influencers: any[] = [];
+  let influencers: Influencer[] = [];
 
   try {
     const url = search
@@ -36,7 +37,7 @@ export default async function InfluencersPage({
             Meet the Hosts
           </h1>
           <p className="text-gray-400 text-lg max-w-xl mx-auto">
-            Ethiopia's biggest football watch party creators. Find your crew.
+            Ethiopia&apos;s biggest football watch party creators. Find your crew.
           </p>
         </div>
       </div>
@@ -69,7 +70,7 @@ export default async function InfluencersPage({
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {influencers.map((inf: any) => (
+            {influencers.map((inf: Influencer) => (
               <Link
                 key={inf.id}
                 href={`/influencers/${inf.slug}`}
@@ -97,6 +98,7 @@ export default async function InfluencersPage({
                     style={{ backgroundColor: inf.teamColor || "var(--primary)", borderColor: "var(--brand-surface)" }}
                   >
                     {inf.profilePhoto ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
                       <img src={inf.profilePhoto} alt={inf.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                     ) : (
                       inf.name.charAt(0).toUpperCase()
