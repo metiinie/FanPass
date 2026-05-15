@@ -6,14 +6,19 @@ import * as jwt from 'jsonwebtoken';
 
 @Injectable()
 export class TicketsService {
-  private readonly JWT_SECRET = process.env.TICKET_JWT_SECRET || 'ticket-secret-key-999';
+  private readonly JWT_SECRET: string;
   private readonly logger = new Logger(TicketsService.name);
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly receiptsService: ReceiptsService,
     private readonly notificationsService: NotificationsService,
-  ) {}
+  ) {
+    this.JWT_SECRET = process.env.TICKET_JWT_SECRET as string;
+    if (!this.JWT_SECRET) {
+      throw new Error('TICKET_JWT_SECRET is not defined in environment variables');
+    }
+  }
 
   // ─── NEW: Submit ticket with receipt ───────────────────────────
 
@@ -26,154 +31,162 @@ export class TicketsService {
     mimeType: string;
     note?: string;
   }) {
-    const ticketCount = data.ticketCount || 1;
-    const maxPerPerson = parseInt(process.env.MAX_TICKETS_PER_PERSON || '4', 10);
+    try {
+      const ticketCount = data.ticketCount || 1;
+      const maxPerPerson = parseInt(process.env.MAX_TICKETS_PER_PERSON || '4', 10);
 
-    // 1. Validate event
-    const event = await this.prisma.event.findUnique({ where: { id: data.eventId } });
-    if (!event || event.status !== 'ACTIVE') {
-      throw new BadRequestException('Event is not active or not found');
-    }
-
-    // 2. Check ticket count limit per phone
-    const existingCount = await this.prisma.ticket.count({
-      where: {
-        eventId: data.eventId,
-        buyerPhone: data.buyerPhone,
-        verificationStatus: { in: ['PENDING_EXTRACTION', 'EXTRACTED_HIGH_CONFIDENCE', 'EXTRACTED_LOW_CONFIDENCE', 'MANUAL_REVIEW_REQUIRED', 'VERIFIED'] },
-      },
-    });
-
-    if (existingCount + ticketCount > maxPerPerson) {
-      throw new BadRequestException(`Maximum ${maxPerPerson} tickets per person for this event. You already have ${existingCount}.`);
-    }
-
-    // 3. Check capacity
-    const pendingCount = await this.prisma.ticket.count({
-      where: {
-        eventId: data.eventId,
-        verificationStatus: { in: ['PENDING_EXTRACTION', 'EXTRACTED_HIGH_CONFIDENCE', 'EXTRACTED_LOW_CONFIDENCE', 'MANUAL_REVIEW_REQUIRED'] },
-      },
-    });
-
-    if (event.ticketsSold + pendingCount + ticketCount > event.maxCapacity) {
-      throw new BadRequestException('Event is sold out or insufficient capacity remaining');
-    }
-
-    // 4. Upload receipt image to Cloudinary
-    const screenshotUrl = await this.receiptsService.uploadReceiptImage(
-      data.screenshotBase64,
-      data.mimeType,
-    );
-
-    // 5. Compute image hash for duplicate detection
-    const imageBuffer = Buffer.from(data.screenshotBase64, 'base64');
-    const imageHash = await this.receiptsService.computeImageHash(imageBuffer);
-
-    // 6. Check for duplicate image
-    const imageDup = await this.receiptsService.checkDuplicateImage(imageHash);
-
-    // 7. Run AI extraction
-    const validMimeTypes = ['image/jpeg', 'image/png', 'image/webp'] as const;
-    const aiMimeType = validMimeTypes.includes(data.mimeType as any)
-      ? (data.mimeType as 'image/jpeg' | 'image/png' | 'image/webp')
-      : 'image/jpeg';
-
-    const expectedAmount = event.expectedAmount || Math.round(event.ticketPrice / 100); // convert santim to ETB
-    const extraction = await this.receiptsService.extractReceiptData(
-      data.screenshotBase64,
-      aiMimeType,
-      expectedAmount * ticketCount,
-      event.currency,
-    );
-
-    // 8. Check for duplicate transaction reference
-    let refDup: { isDuplicate: boolean; matchingTicketId?: string } = { isDuplicate: false };
-    if (extraction.transactionRef) {
-      refDup = await this.receiptsService.checkDuplicateRef(extraction.transactionRef);
-    }
-
-    // 9. Determine verification status
-    let verificationStatus: any = 'EXTRACTED_HIGH_CONFIDENCE';
-    const allFlags = [...(extraction.flags || [])];
-
-    if (allFlags.includes('ai_error') || allFlags.includes('parse_error') || allFlags.includes('ai_disabled')) {
-      verificationStatus = 'MANUAL_REVIEW_REQUIRED';
-    } else {
-      if (imageDup.isDuplicate) {
-        allFlags.push('possible duplicate image');
-      }
-      if (refDup.isDuplicate) {
-        allFlags.push('duplicate transaction reference');
+      // 1. Validate event
+      const event = await this.prisma.event.findUnique({ where: { id: data.eventId } });
+      if (!event || event.status !== 'ACTIVE') {
+        throw new BadRequestException('Event is not active or not found');
       }
 
-      // If flags exist or confidence is low, it's low confidence
-      if (allFlags.length > 0 || extraction.confidence < 0.8) {
-        verificationStatus = 'EXTRACTED_LOW_CONFIDENCE';
+      // 2. Check ticket count limit per phone
+      const existingCount = await this.prisma.ticket.count({
+        where: {
+          eventId: data.eventId,
+          buyerPhone: data.buyerPhone,
+          verificationStatus: { in: ['PENDING_EXTRACTION', 'EXTRACTED_HIGH_CONFIDENCE', 'EXTRACTED_LOW_CONFIDENCE', 'MANUAL_REVIEW_REQUIRED', 'VERIFIED'] },
+        },
+      });
+
+      if (existingCount + ticketCount > maxPerPerson) {
+        throw new BadRequestException(`Maximum ${maxPerPerson} tickets per person for this event. You already have ${existingCount}.`);
       }
-    }
 
-    // 10. Create ticket
-    const ticket = await this.prisma.ticket.create({
-      data: {
-        eventId: data.eventId,
-        buyerPhone: data.buyerPhone,
-        buyerName: data.buyerName,
-        ticketCount,
-        note: data.note,
-        status: 'PENDING',
-        screenshotUrl,
-        screenshotUploadedAt: new Date(),
-        imageHash: imageHash || null,
-        extractedAmount: extraction.amount,
-        extractedSenderName: extraction.senderName,
-        extractedDate: extraction.date,
-        extractedRef: extraction.transactionRef,
-        aiConfidenceScore: extraction.confidence,
-        aiRawText: JSON.stringify(extraction),
-        verificationStatus,
-      },
-    });
+      // 3. Check capacity
+      const pendingCount = await this.prisma.ticket.count({
+        where: {
+          eventId: data.eventId,
+          verificationStatus: { in: ['PENDING_EXTRACTION', 'EXTRACTED_HIGH_CONFIDENCE', 'EXTRACTED_LOW_CONFIDENCE', 'MANUAL_REVIEW_REQUIRED'] },
+        },
+      });
 
-    // 11. Notify organizer via SMS (if enabled)
-    if (process.env.ORGANIZER_NOTIFICATION_SMS === 'true') {
-      try {
-        const influencer = await this.prisma.influencer.findUnique({
-          where: { id: event.organizerId },
-        });
-        if (influencer) {
-          const lastFour = data.buyerPhone.slice(-4);
-          const flagsText = allFlags.length > 0 ? `\nFlags: ${allFlags.join(', ')}` : '';
-          const confidence = Math.round(extraction.confidence * 100);
-          await this.notificationsService.sendOrganizerNotificationSms(
-            influencer.phone,
-            event.title,
-            data.buyerName,
-            lastFour,
-            confidence,
-            flagsText,
-            event.id,
-          );
+      if (event.ticketsSold + pendingCount + ticketCount > event.maxCapacity) {
+        throw new BadRequestException('Event is sold out or insufficient capacity remaining');
+      }
+
+      // 4. Upload receipt image to Cloudinary
+      const screenshotUrl = await this.receiptsService.uploadReceiptImage(
+        data.screenshotBase64,
+        data.mimeType,
+      );
+
+      // 5. Compute image hash for duplicate detection
+      const imageBuffer = Buffer.from(data.screenshotBase64, 'base64');
+      const imageHash = await this.receiptsService.computeImageHash(imageBuffer);
+
+      // 6. Check for duplicate image
+      const imageDup = await this.receiptsService.checkDuplicateImage(imageHash);
+
+      // 7. Run AI extraction
+      const validMimeTypes = ['image/jpeg', 'image/png', 'image/webp'] as const;
+      const aiMimeType = validMimeTypes.includes(data.mimeType as any)
+        ? (data.mimeType as 'image/jpeg' | 'image/png' | 'image/webp')
+        : 'image/jpeg';
+
+      const expectedAmount = event.expectedAmount || Math.round(event.ticketPrice / 100); // convert santim to ETB
+      const extraction = await this.receiptsService.extractReceiptData(
+        data.screenshotBase64,
+        aiMimeType,
+        expectedAmount * ticketCount,
+        event.currency,
+      );
+
+      // 8. Check for duplicate transaction reference
+      let refDup: { isDuplicate: boolean; matchingTicketId?: string } = { isDuplicate: false };
+      if (extraction.transactionRef) {
+        refDup = await this.receiptsService.checkDuplicateRef(extraction.transactionRef);
+      }
+
+      // 9. Determine verification status
+      let verificationStatus: any = 'EXTRACTED_HIGH_CONFIDENCE';
+      const allFlags = [...(extraction.flags || [])];
+
+      if (allFlags.includes('ai_error') || allFlags.includes('parse_error') || allFlags.includes('ai_disabled')) {
+        verificationStatus = 'MANUAL_REVIEW_REQUIRED';
+      } else {
+        if (imageDup.isDuplicate) {
+          allFlags.push('possible duplicate image');
         }
-      } catch (err: any) {
-        this.logger.error(`Failed to send organizer notification: ${err.message}`);
-      }
-    }
+        if (refDup.isDuplicate) {
+          allFlags.push('duplicate transaction reference');
+        }
 
-    return {
-      ticketId: ticket.id,
-      verificationStatus: ticket.verificationStatus,
-      extraction: {
-        amount: extraction.amount,
-        currency: extraction.currency,
-        senderName: extraction.senderName,
-        date: extraction.date,
-        transactionRef: extraction.transactionRef,
-        confidence: extraction.confidence,
-        flags: allFlags,
-        amountMatch: extraction.amount !== null && extraction.amount === expectedAmount * ticketCount,
-      },
-    };
+        // If flags exist or confidence is low, it's low confidence
+        if (allFlags.length > 0 || extraction.confidence < 0.8) {
+          verificationStatus = 'EXTRACTED_LOW_CONFIDENCE';
+        }
+      }
+
+      // 10. Create ticket
+      const ticket = await this.prisma.ticket.create({
+        data: {
+          eventId: data.eventId,
+          buyerPhone: data.buyerPhone,
+          buyerName: data.buyerName,
+          ticketCount,
+          note: data.note,
+          status: 'PENDING',
+          screenshotUrl,
+          screenshotUploadedAt: new Date(),
+          imageHash: imageHash || null,
+          extractedAmount: extraction.amount,
+          extractedSenderName: extraction.senderName,
+          extractedDate: extraction.date,
+          extractedRef: extraction.transactionRef,
+          aiConfidenceScore: extraction.confidence,
+          aiRawText: JSON.stringify(extraction),
+          verificationStatus,
+        },
+      });
+
+      // 11. Notify organizer via SMS (if enabled)
+      if (process.env.ORGANIZER_NOTIFICATION_SMS === 'true') {
+        try {
+          const influencer = await this.prisma.influencer.findUnique({
+            where: { id: event.organizerId },
+          });
+          if (influencer) {
+            const lastFour = data.buyerPhone.slice(-4);
+            const flagsText = allFlags.length > 0 ? `\nFlags: ${allFlags.join(', ')}` : '';
+            const confidence = Math.round(extraction.confidence * 100);
+            await this.notificationsService.sendOrganizerNotificationSms(
+              influencer.phone,
+              event.title,
+              data.buyerName,
+              lastFour,
+              confidence,
+              flagsText,
+              event.id,
+            );
+          }
+        } catch (err: any) {
+          this.logger.error(`Failed to send organizer notification: ${err.message}`);
+        }
+      }
+
+      return {
+        ticketId: ticket.id,
+        verificationStatus: ticket.verificationStatus,
+        extraction: {
+          amount: extraction.amount,
+          currency: extraction.currency,
+          senderName: extraction.senderName,
+          date: extraction.date,
+          transactionRef: extraction.transactionRef,
+          confidence: extraction.confidence,
+          flags: allFlags,
+          amountMatch: extraction.amount !== null && extraction.amount === expectedAmount * ticketCount,
+        },
+      };
+    } catch (error: any) {
+      this.logger.error(`Ticket submission failed: ${error.message}`, error.stack);
+      if (error instanceof BadRequestException || error instanceof ConflictException) {
+        throw error;
+      }
+      throw new BadRequestException(error.message || 'Failed to submit ticket. Please try again.');
+    }
   }
 
   // ─── Approve ticket ────────────────────────────────────────────

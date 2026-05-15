@@ -50,7 +50,7 @@ export default function TermsPage() {
                 3. Refund Policy
               </h2>
               <p>
-                Refunds are subject to the specific organizer's policy. Generally, tickets are non-refundable 
+                Refunds are subject to the specific organizer&apos;s policy. Generally, tickets are non-refundable 
                 unless the event is cancelled or rescheduled. In the event of cancellation, refunds will be 
                 processed back through the original payment method (Bank Transfer, etc.).
               </p>

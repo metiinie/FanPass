@@ -4,12 +4,23 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
 import { SCAN_RESULT_LABELS } from "@/lib/constants";
-import { Users, Ticket, Wallet, Activity, CheckCircle2, UserPlus, StopCircle, RefreshCw, Trash2, Edit } from "lucide-react";
+import { 
+  Users, 
+  Ticket, 
+  Wallet, 
+  Activity, 
+  CheckCircle2, 
+  UserPlus, 
+  StopCircle, 
+  RefreshCw, 
+  Trash2, 
+  Settings,
+  ChevronRight,
+  AlertCircle
+} from "lucide-react";
 import Link from "next/link";
 import { fetchBackend } from "@/lib/apiClient";
 import { toast } from "sonner";
-
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3001";
 
 export default function EventDashboardPage({ params }: { params: { eventId: string } }) {
   const router = useRouter();
@@ -45,7 +56,7 @@ export default function EventDashboardPage({ params }: { params: { eventId: stri
 
   useEffect(() => {
     fetchEventData();
-    // Poll every 10 seconds
+    // Poll every 10 seconds for live updates
     const interval = setInterval(fetchEventData, 10000);
     return () => clearInterval(interval);
   }, [params.eventId]);
@@ -99,8 +110,7 @@ export default function EventDashboardPage({ params }: { params: { eventId: stri
       toast.success("Event published successfully!");
       fetchEventData();
     } catch (err: any) {
-      console.error(err);
-      alert(err.message || "Failed to publish event");
+      toast.error(err.message || "Failed to publish event");
     }
   };
 
@@ -115,287 +125,396 @@ export default function EventDashboardPage({ params }: { params: { eventId: stri
       });
       router.push("/dashboard");
     } catch (err: any) {
-      console.error(err);
-      alert(err.message || "Failed to delete event. Only DRAFT or CANCELLED events can be deleted.");
+      toast.error(err.message || "Failed to delete event. Only DRAFT or CANCELLED events can be deleted.");
     }
   };
 
-
-
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1A7A4A]"></div>
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1A7A4A]"></div>
+        <p className="text-gray-500 font-medium animate-pulse">Loading dashboard...</p>
       </div>
     );
   }
 
   if (error || !event) {
     return (
-      <div className="bg-red-50 text-red-600 p-6 rounded-2xl border border-red-100">
-        <h3 className="text-lg font-bold">Error Loading Dashboard</h3>
-        <p>{error || "Event not found"}</p>
-        <button onClick={() => router.push("/dashboard")} className="mt-4 underline font-medium">Back to events</button>
+      <div className="bg-red-50 text-red-600 p-8 rounded-3xl border border-red-100 max-w-2xl mx-auto mt-12 shadow-sm">
+        <div className="flex items-center gap-3 mb-4">
+          <AlertCircle className="w-6 h-6" />
+          <h3 className="text-xl font-bold font-['Outfit']">Error Loading Dashboard</h3>
+        </div>
+        <p className="text-red-500 mb-6 font-medium">{error || "Event not found"}</p>
+        <button 
+          onClick={() => router.push("/dashboard")} 
+          className="bg-white px-6 py-2.5 rounded-xl border border-red-200 text-red-600 font-bold hover:bg-red-50 transition-colors shadow-sm"
+        >
+          Back to Dashboard
+        </button>
       </div>
     );
   }
 
-  const salesProgress = Math.min(100, (stats.ticketsSold / stats.maxCapacity) * 100);
-  const entryProgress = stats.ticketsSold > 0 ? Math.min(100, (stats.attendeesEntered / stats.ticketsSold) * 100) : 0;
+  const salesProgress = stats ? Math.min(100, (stats.ticketsSold / stats.maxCapacity) * 100) : 0;
+  const entryProgress = (stats && stats.ticketsSold > 0) ? Math.min(100, (stats.attendeesEntered / stats.ticketsSold) * 100) : 0;
 
   return (
-    <div className="space-y-6 pb-12 animate-in fade-in duration-300">
+    <div className="space-y-8 pb-20 animate-in fade-in duration-500">
       
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3 mb-2">
-            <h2 className="text-3xl font-bold text-[#111827] font-['Outfit'] tracking-tight">{event.title}</h2>
-            <div className="px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider bg-green-100 text-green-800">
-              {stats.eventStatus}
-            </div>
-          </div>
-          <p className="text-[#6B7280] flex items-center gap-2 text-sm">
-            <span>{formatDateTime(event.dateTime)}</span>
-            <span>•</span>
-            <span>{event.venue}</span>
-          </p>
+      {/* Breadcrumbs & Live Indicator */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-2 text-sm text-gray-500 font-medium">
+          <Link href="/dashboard" className="hover:text-[#1A7A4A] transition-colors">Dashboard</Link>
+          <ChevronRight className="w-4 h-4" />
+          <span className="text-gray-900 truncate max-w-[200px]">{event.title}</span>
         </div>
         
-        <div className="flex items-center gap-3 shrink-0">
-          <Link 
-            href={`/dashboard/events/${params.eventId}/edit`} 
-            className="px-4 py-2 bg-white border border-[#E5E7EB] text-[#111827] rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm flex items-center gap-2"
-          >
-            <Settings className="w-4 h-4" /> Edit Event
-          </Link>
-          <Link 
-            href={`/dashboard/events/${params.eventId}/approvals`}
-            className="flex items-center gap-2 bg-[#1A7A4A] text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-[#14623b] transition-colors shadow-sm relative"
-          >
-            <CheckCircle2 className="w-4 h-4" /> Review Submissions
-            {submissionsStatus?.needsReview > 0 && (
-              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-white">
-                {submissionsStatus.needsReview}
-              </span>
-            )}
-          </Link>
-          <Link 
-            href={`/events/${event.slug}`} 
-            target="_blank"
-            className="px-4 py-2 bg-white border border-[#E5E7EB] text-[#111827] rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm"
-          >
-            View Public Page
-          </Link>
-          <div className="flex flex-wrap gap-3">
-          {event.status === "DRAFT" && (
-            <button onClick={() => handleUpdateStatus("ACTIVE")} className="flex items-center gap-2 px-4 py-2 bg-[#1A7A4A] text-white rounded-xl text-sm font-bold shadow-sm hover:bg-[#14623b] transition-colors">
-              <Activity className="w-4 h-4" />
-              Publish Event
-            </button>
-          )}
-          {event.status === "ACTIVE" && (
-            <>
-              <button onClick={() => handleUpdateStatus("SALES_CLOSED")} className="flex items-center gap-2 px-4 py-2 bg-orange-100 text-orange-700 rounded-xl text-sm font-bold hover:bg-orange-200 transition-colors">
-                <StopCircle className="w-4 h-4" />
-                Close Sales
-              </button>
-              <button onClick={() => handleUpdateStatus("LIVE")} className="flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-xl text-sm font-bold hover:bg-blue-200 transition-colors">
-                <Activity className="w-4 h-4" />
-                Mark Live
-              </button>
-            </>
-          )}
-          {event.status === "LIVE" && (
-             <button onClick={() => handleUpdateStatus("COMPLETED")} className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-xl text-sm font-bold hover:bg-gray-200 transition-colors">
-                <CheckCircle2 className="w-4 h-4" />
-                Mark Completed
-             </button>
-          )}
-          
-          {!['COMPLETED', 'CANCELLED'].includes(event.status) && (
-            <button onClick={() => setShowCancelModal(true)} className="flex items-center gap-2 px-4 py-2 bg-red-100 text-red-700 rounded-xl text-sm font-bold hover:bg-red-200 transition-colors">
-              <StopCircle className="w-4 h-4" />
-              Cancel Event
-            </button>
-          )}
-
-          {['DRAFT', 'CANCELLED'].includes(event.status) && (
-            <button onClick={handleDeleteEvent} className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-xl text-sm font-bold hover:bg-red-100 transition-colors">
-              <Trash2 className="w-4 h-4" />
-              Delete
-            </button>
-          )}
+        <div className="flex items-center gap-2 text-xs font-bold text-[#1A7A4A] bg-[#E8F5EE] px-3 py-1.5 rounded-full border border-[#D1EADB]">
+          <RefreshCw className="w-3.5 h-3.5 animate-spin-slow" />
+          <span className="uppercase tracking-wider">Live Monitoring Active</span>
         </div>
       </div>
 
-      <div className="flex items-center gap-2 text-sm text-[#1A7A4A] bg-[#E8F5EE] px-4 py-2 rounded-lg inline-flex">
-        <RefreshCw className="w-4 h-4 animate-spin-slow" />
-        <span className="font-medium">Live monitoring active (updates every 10s)</span>
+      {/* Header Section */}
+      <div className="bg-white rounded-[2rem] p-8 border border-[#E5E7EB] shadow-sm relative overflow-hidden group">
+        {/* Subtle background decoration */}
+        <div className="absolute -right-20 -top-20 w-64 h-64 bg-[#1A7A4A]/5 rounded-full blur-3xl group-hover:bg-[#1A7A4A]/10 transition-colors duration-700"></div>
+        
+        <div className="relative flex flex-col lg:flex-row lg:items-start justify-between gap-8">
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className="text-3xl md:text-4xl font-extrabold text-[#111827] font-['Outfit'] tracking-tight">
+                {event.title}
+              </h1>
+              <span className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest border shadow-sm ${
+                event.status === 'ACTIVE' ? 'bg-green-100 text-green-700 border-green-200' :
+                event.status === 'DRAFT' ? 'bg-gray-100 text-gray-600 border-gray-200' :
+                event.status === 'LIVE' ? 'bg-blue-100 text-blue-700 border-blue-200 animate-pulse' :
+                'bg-red-100 text-red-700 border-red-200'
+              }`}>
+                {event.status}
+              </span>
+            </div>
+            
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-[#6B7280] font-medium">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-[#1A7A4A]"></div>
+                <span>{formatDateTime(event.dateTime)}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                <span>{event.venue}</span>
+              </div>
+              {event.city && (
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-purple-500"></div>
+                  <span>{event.city}</span>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          <div className="flex flex-wrap items-center gap-3 shrink-0">
+            <Link 
+              href={`/dashboard/events/${params.eventId}/edit`} 
+              className="px-5 py-2.5 bg-white border border-[#E5E7EB] text-[#111827] rounded-xl text-sm font-bold hover:bg-gray-50 transition-all shadow-sm flex items-center gap-2 active:scale-95"
+            >
+              <Settings className="w-4 h-4 text-gray-400" /> Edit Event
+            </Link>
+            
+            <Link 
+              href={`/dashboard/events/${params.eventId}/approvals`}
+              className="flex items-center gap-2 bg-[#1A7A4A] text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-[#14623b] transition-all shadow-md shadow-green-100 relative active:scale-95"
+            >
+              <CheckCircle2 className="w-4 h-4" /> Review Tickets
+              {submissionsStatus?.needsReview > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-white ring-4 ring-red-500/10">
+                  {submissionsStatus.needsReview}
+                </span>
+              )}
+            </Link>
+
+            <div className="w-full sm:w-auto flex gap-2 pt-2 lg:pt-0 lg:border-l lg:pl-6 lg:ml-2 border-gray-100">
+              {event.status === "DRAFT" && (
+                <button 
+                  onClick={handlePublishEvent}
+                  className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all active:scale-95"
+                >
+                  <Activity className="w-4 h-4" /> Publish
+                </button>
+              )}
+              
+              {event.status === "ACTIVE" && (
+                <>
+                  <button onClick={() => handleUpdateStatus("SALES_CLOSED")} className="px-4 py-2 bg-orange-50 text-orange-700 rounded-xl text-sm font-bold border border-orange-100 hover:bg-orange-100 transition-colors">
+                    Close Sales
+                  </button>
+                  <button onClick={() => handleUpdateStatus("LIVE")} className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold shadow-lg shadow-blue-100 hover:bg-blue-700 transition-colors">
+                    Go Live
+                  </button>
+                </>
+              )}
+
+              {event.status === "LIVE" && (
+                <button onClick={() => handleUpdateStatus("COMPLETED")} className="px-5 py-2.5 bg-gray-900 text-white rounded-xl text-sm font-bold hover:bg-black transition-colors">
+                  Complete Event
+                </button>
+              )}
+              
+              {!['COMPLETED', 'CANCELLED'].includes(event.status) && (
+                <button 
+                  onClick={() => setShowCancelModal(true)}
+                  className="p-2.5 text-red-500 hover:bg-red-50 rounded-xl transition-colors border border-transparent hover:border-red-100"
+                  title="Cancel Event"
+                >
+                  <StopCircle className="w-5 h-5" />
+                </button>
+              )}
+
+              {['DRAFT', 'CANCELLED'].includes(event.status) && (
+                <button 
+                  onClick={handleDeleteEvent}
+                  className="p-2.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors border border-transparent hover:border-red-100"
+                  title="Delete Event"
+                >
+                  <Trash2 className="w-5 h-5" />
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Main Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white p-6 rounded-2xl border border-[#E5E7EB] shadow-sm">
-          <div className="flex items-center gap-3 mb-2 text-[#6B7280]">
-            <Ticket className="w-5 h-5 text-blue-500" />
-            <h3 className="font-medium uppercase tracking-wider text-xs">Tickets Sold</h3>
+        {/* Tickets Sold */}
+        <div className="bg-white p-7 rounded-[2rem] border border-[#E5E7EB] shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center">
+              <Ticket className="w-5 h-5" />
+            </div>
+            <h3 className="font-bold text-gray-400 uppercase tracking-widest text-[10px]">Tickets Sold</h3>
           </div>
-          <div className="flex items-end gap-2 mb-3">
-            <span className="text-3xl font-bold font-['Outfit'] text-[#111827]">{stats.ticketsSold}</span>
-            <span className="text-[#6B7280] mb-1">/ {stats.maxCapacity}</span>
+          <div className="flex items-baseline gap-2 mb-4">
+            <span className="text-4xl font-black font-['Outfit'] text-[#111827]">{stats?.ticketsSold || 0}</span>
+            <span className="text-gray-400 font-medium">/ {stats?.maxCapacity || 0}</span>
           </div>
-          <div className="h-2 w-full bg-[#E5E7EB] rounded-full overflow-hidden">
-            <div className="h-full bg-blue-500" style={{ width: `${salesProgress}%` }} />
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-2xl border border-[#E5E7EB] shadow-sm">
-          <div className="flex items-center gap-3 mb-2 text-[#6B7280]">
-            <Users className="w-5 h-5 text-green-500" />
-            <h3 className="font-medium uppercase tracking-wider text-xs">Entered Venue</h3>
-          </div>
-          <div className="flex items-end gap-2 mb-3">
-            <span className="text-3xl font-bold font-['Outfit'] text-[#111827]">{stats.attendeesEntered}</span>
-            <span className="text-[#6B7280] mb-1">/ {stats.ticketsSold}</span>
-          </div>
-          <div className="h-2 w-full bg-[#E5E7EB] rounded-full overflow-hidden">
-            <div className="h-full bg-green-500" style={{ width: `${entryProgress}%` }} />
+          <div className="h-2.5 w-full bg-gray-100 rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-blue-500 rounded-full transition-all duration-1000 ease-out" 
+              style={{ width: `${salesProgress}%` }} 
+            />
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl border border-[#E5E7EB] shadow-sm flex items-center justify-between">
+        {/* Checked In */}
+        <div className="bg-white p-7 rounded-[2rem] border border-[#E5E7EB] shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 bg-green-50 text-green-600 rounded-2xl flex items-center justify-center">
+              <Users className="w-5 h-5" />
+            </div>
+            <h3 className="font-bold text-gray-400 uppercase tracking-widest text-[10px]">Checked In</h3>
+          </div>
+          <div className="flex items-baseline gap-2 mb-4">
+            <span className="text-4xl font-black font-['Outfit'] text-[#111827]">{stats?.attendeesEntered || 0}</span>
+            <span className="text-gray-400 font-medium">/ {stats?.ticketsSold || 0}</span>
+          </div>
+          <div className="h-2.5 w-full bg-gray-100 rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-green-500 rounded-full transition-all duration-1000 ease-out" 
+              style={{ width: `${entryProgress}%` }} 
+            />
+          </div>
+        </div>
+
+        {/* Revenue */}
+        <div className="bg-white p-7 rounded-[2rem] border border-[#E5E7EB] shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center">
+              <Wallet className="w-5 h-5" />
+            </div>
+            <h3 className="font-bold text-gray-400 uppercase tracking-widest text-[10px]">Total Revenue</h3>
+          </div>
           <div>
-            <p className="text-sm font-medium text-[#6B7280] mb-1">Total Ticket Value</p>
-            <p className="text-3xl font-bold font-['Outfit'] text-[#111827]">{formatCurrency(stats.totalSalesValue)}</p>
-          </div>
-          <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
-            <Wallet className="w-6 h-6" />
+            <p className="text-3xl font-black font-['Outfit'] text-[#111827] truncate">
+              {stats ? formatCurrency(stats.totalSalesValue) : 'ETB 0.00'}
+            </p>
+            <p className="text-xs text-green-600 font-bold mt-1">Confirmed payments</p>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl border border-[#E5E7EB] shadow-sm flex items-center justify-between">
+        {/* Pending */}
+        <div className="bg-white p-7 rounded-[2rem] border border-[#E5E7EB] shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between">
+          <div className="flex items-center gap-3 mb-6">
+            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${submissionsStatus?.needsReview > 0 ? 'bg-red-50 text-red-600 animate-pulse' : 'bg-gray-50 text-gray-400'}`}>
+              <CheckCircle2 className="w-5 h-5" />
+            </div>
+            <h3 className="font-bold text-gray-400 uppercase tracking-widest text-[10px]">Pending Approval</h3>
+          </div>
           <div>
-            <p className="text-sm font-medium text-[#6B7280] mb-1">Pending Reviews</p>
-            <p className={`text-3xl font-bold font-['Outfit'] ${submissionsStatus?.needsReview > 0 ? 'text-red-500' : 'text-[#111827]'}`}>
+            <p className={`text-3xl font-black font-['Outfit'] ${submissionsStatus?.needsReview > 0 ? 'text-red-500' : 'text-[#111827]'}`}>
               {submissionsStatus?.needsReview || 0}
             </p>
-          </div>
-          <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${submissionsStatus?.needsReview > 0 ? 'bg-red-50 text-red-600 animate-pulse' : 'bg-gray-50 text-gray-400'}`}>
-            <CheckCircle2 className="w-6 h-6" />
+            <Link href={`/dashboard/events/${params.eventId}/approvals`} className="text-xs text-gray-400 hover:text-[#1A7A4A] font-bold mt-1 underline decoration-dotted">
+              Review Submissions
+            </Link>
           </div>
         </div>
       </div>
 
-      {/* Staff and Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-1 bg-white p-6 rounded-2xl border border-[#E5E7EB] shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3 text-[#6B7280]">
-              <UserPlus className="w-5 h-5 text-purple-500" />
-              <h3 className="font-medium uppercase tracking-wider text-xs">Staff Assigned</h3>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Left Column: Activity Log */}
+        <div className="lg:col-span-2 bg-white rounded-[2rem] border border-[#E5E7EB] shadow-sm overflow-hidden">
+          <div className="px-8 py-6 border-b border-[#E5E7EB] bg-gray-50/50 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Activity className="w-5 h-5 text-gray-400" />
+              <h3 className="font-bold text-[#111827] font-['Outfit'] text-lg">Recent Scan Activity</h3>
             </div>
-            <Link href="/dashboard/staff" className="text-xs text-[#1A7A4A] hover:underline font-medium">Manage</Link>
           </div>
-          <div className="space-y-3">
-            {stats.staff.length > 0 ? stats.staff.map((s: any) => (
-              <div key={s.id} className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                <span className="text-sm font-medium text-[#111827]">{s.name}</span>
+          
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-white text-gray-400 font-bold uppercase tracking-widest text-[10px] border-b border-[#E5E7EB]">
+                <tr>
+                  <th className="px-8 py-4">Time</th>
+                  <th className="px-8 py-4">Attendee</th>
+                  <th className="px-8 py-4">Staff</th>
+                  <th className="px-8 py-4">Result</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#E5E7EB] bg-white">
+                {stats?.recentScans.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="px-8 py-20 text-center">
+                      <div className="flex flex-col items-center gap-2 text-gray-400">
+                        <RefreshCw className="w-8 h-8 opacity-20 mb-2" />
+                        <p className="font-medium italic">No scans recorded yet. Activity will appear here live.</p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  stats?.recentScans.map((scan: any) => {
+                    const resultConfig = SCAN_RESULT_LABELS[scan.result] || SCAN_RESULT_LABELS.INVALID;
+                    return (
+                      <tr key={scan.id} className="hover:bg-gray-50/50 transition-colors group">
+                        <td className="px-8 py-4 text-gray-500 font-medium">
+                          {new Date(scan.scannedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </td>
+                        <td className="px-8 py-4 font-bold text-[#111827]">
+                          {scan.buyerPhone}
+                        </td>
+                        <td className="px-8 py-4 text-gray-600 font-medium">
+                          {scan.staffName}
+                        </td>
+                        <td className="px-8 py-4">
+                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${
+                            scan.result === "VALID" 
+                              ? "bg-green-50 text-green-700 border-green-100" 
+                              : "bg-red-50 text-red-700 border-red-100"
+                          }`}>
+                            <div className={`w-1.5 h-1.5 rounded-full ${scan.result === "VALID" ? "bg-green-500" : "bg-red-500"}`}></div>
+                            {resultConfig.label}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Right Column: Staff & Quick Info */}
+        <div className="space-y-8">
+          <div className="bg-white p-8 rounded-[2rem] border border-[#E5E7EB] shadow-sm">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3 text-gray-400">
+                <UserPlus className="w-5 h-5" />
+                <h3 className="font-bold uppercase tracking-widest text-[10px]">Assigned Staff</h3>
               </div>
-            )) : (
-              <span className="text-sm text-[#6B7280]">No staff assigned yet.</span>
-            )}
+              <Link href="/dashboard/staff" className="text-xs font-bold text-[#1A7A4A] hover:underline">Manage</Link>
+            </div>
+            
+            <div className="space-y-4">
+              {stats?.staff && stats.staff.length > 0 ? stats.staff.map((s: any) => (
+                <div key={s.id} className="flex items-center justify-between group">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-[10px] font-bold text-gray-500 group-hover:bg-[#1A7A4A]/10 group-hover:text-[#1A7A4A] transition-colors">
+                      {s.name.charAt(0)}
+                    </div>
+                    <span className="text-sm font-bold text-[#111827]">{s.name}</span>
+                  </div>
+                  <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]"></div>
+                </div>
+              )) : (
+                <div className="text-center py-6 border-2 border-dashed border-gray-100 rounded-2xl">
+                  <p className="text-xs text-gray-400 font-medium">No staff assigned yet.</p>
+                  <Link href="/dashboard/staff" className="text-[10px] font-black text-[#1A7A4A] uppercase mt-2 inline-block">Add Staff Now</Link>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="bg-gray-900 rounded-[2rem] p-8 text-white shadow-xl shadow-gray-200">
+            <h4 className="font-bold font-['Outfit'] text-lg mb-4">Event Details</h4>
+            <div className="space-y-4 text-sm opacity-80">
+              <div>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Venue Map</p>
+                {event.venueMapUrl ? (
+                  <a 
+                    href={event.venueMapUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="truncate underline text-[#1A7A4A] font-medium block hover:text-[#14623b] transition-colors"
+                  >
+                    View Map →
+                  </a>
+                ) : (
+                  <p className="text-gray-500 italic text-xs">No map link provided</p>
+                )}
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Ticket Price</p>
+                <p className="text-lg font-bold text-white">{formatCurrency(event.ticketPrice)}</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Live Scan Log Table */}
-      <div className="bg-white rounded-2xl border border-[#E5E7EB] shadow-sm overflow-hidden">
-        <div className="px-6 py-5 border-b border-[#E5E7EB] bg-gray-50 flex items-center gap-2">
-          <Activity className="w-5 h-5 text-[#6B7280]" />
-          <h3 className="font-bold text-[#111827] font-['Outfit'] text-lg">Live Scan Activity</h3>
-        </div>
-        
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-white text-[#6B7280] font-medium uppercase tracking-wider border-b border-[#E5E7EB]">
-              <tr>
-                <th className="px-6 py-4">Time</th>
-                <th className="px-6 py-4">Attendee / Phone</th>
-                <th className="px-6 py-4">Scanner Staff</th>
-                <th className="px-6 py-4">Result</th>
-                <th className="px-6 py-4 text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#E5E7EB] bg-white">
-              {stats.recentScans.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-[#6B7280]">
-                    No scans recorded yet. Activity will appear here in real-time.
-                  </td>
-                </tr>
-              ) : (
-                stats.recentScans.map((scan: any) => {
-                  const resultConfig = SCAN_RESULT_LABELS[scan.result] || SCAN_RESULT_LABELS.INVALID;
-                  return (
-                    <tr key={scan.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 text-[#111827]">
-                        {new Date(scan.scannedAt).toLocaleTimeString()}
-                      </td>
-                      <td className="px-6 py-4 text-[#111827] font-medium">
-                        {scan.buyerPhone}
-                      </td>
-                      <td className="px-6 py-4 text-[#6B7280]">
-                        {scan.staffName}
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${
-                          scan.result === "VALID" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                        }`}>
-                          {scan.result === "VALID" ? <CheckCircle2 className="w-3.5 h-3.5" /> : null}
-                          {resultConfig.label}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <span className="text-xs text-gray-400">No action</span>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
       {/* Cancel Event Modal */}
       {showCancelModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl p-8 max-w-lg w-full shadow-2xl animate-in zoom-in-95 duration-200">
-            <h3 className="text-2xl font-bold font-['Outfit'] mb-2 text-red-600">Cancel Event</h3>
-            <p className="text-gray-500 text-sm mb-6">
-              This will immediately invalidate all issued tickets and notify attendees via SMS. 
-              <strong> You are responsible for manual refunds.</strong>
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-[2.5rem] p-10 max-w-lg w-full shadow-2xl animate-in zoom-in-95 duration-300">
+            <div className="w-16 h-16 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center mb-6">
+              <AlertCircle className="w-8 h-8" />
+            </div>
+            <h3 className="text-2xl font-black font-['Outfit'] mb-3 text-[#111827]">Cancel Event?</h3>
+            <p className="text-gray-500 text-sm mb-8 leading-relaxed">
+              This action is <span className="text-red-600 font-bold">irreversible</span>. All tickets will be invalidated and attendees will be notified. 
+              You are responsible for processing refunds manually.
             </p>
             
-            <div className="space-y-4 mb-8">
+            <div className="space-y-5 mb-10">
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1.5">Refund Policy / Instructions</label>
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Refund Instructions</label>
                 <textarea 
                   value={cancelForm.refundPolicy}
                   onChange={(e) => setCancelForm({ ...cancelForm, refundPolicy: e.target.value })}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 text-sm min-h-[100px] focus:ring-2 focus:ring-red-500 focus:outline-none"
-                  placeholder="How will you refund the fans?"
+                  className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl p-4 text-sm min-h-[120px] focus:ring-4 focus:ring-red-500/10 focus:border-red-500 focus:outline-none transition-all resize-none"
+                  placeholder="How should fans contact you for refunds?"
                 />
               </div>
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1.5">Organizer Contact Info</label>
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Organizer Contact Info</label>
                 <input 
                   type="text"
                   value={cancelForm.organizerContact}
                   onChange={(e) => setCancelForm({ ...cancelForm, organizerContact: e.target.value })}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 text-sm focus:ring-2 focus:ring-red-500 focus:outline-none"
-                  placeholder="e.g. Phone number or Telegram handle"
+                  className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl px-4 py-3.5 text-sm focus:ring-4 focus:ring-red-500/10 focus:border-red-500 focus:outline-none transition-all"
+                  placeholder="e.g. Phone or Telegram handle"
                 />
               </div>
             </div>
@@ -403,13 +522,13 @@ export default function EventDashboardPage({ params }: { params: { eventId: stri
             <div className="flex gap-4">
               <button 
                 onClick={() => setShowCancelModal(false)}
-                className="flex-1 py-3.5 rounded-xl font-bold text-gray-600 border-2 border-gray-100 hover:bg-gray-50"
+                className="flex-1 py-4 rounded-2xl font-bold text-gray-500 hover:bg-gray-50 transition-colors"
               >
                 Go Back
               </button>
               <button 
                 onClick={handleCancelEvent}
-                className="flex-[2] py-3.5 rounded-xl font-bold bg-red-600 text-white hover:bg-red-700 shadow-lg shadow-red-200 transition-all"
+                className="flex-[1.5] py-4 rounded-2xl font-bold bg-red-600 text-white hover:bg-red-700 shadow-xl shadow-red-200 transition-all active:scale-95"
               >
                 Confirm Cancellation
               </button>

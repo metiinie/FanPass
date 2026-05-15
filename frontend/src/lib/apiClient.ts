@@ -1,4 +1,5 @@
 import { auth } from "@/server/auth";
+import { Session } from "next-auth";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3001";
 
@@ -26,7 +27,7 @@ export async function fetchBackend(endpoint: string, options: FetchOptions = {})
       // Client-side: use getSession from next-auth/react
       const { getSession } = await import("next-auth/react");
       const session = await getSession();
-      token = (session as any)?.accessToken;
+      token = (session as Session | null)?.accessToken;
     } else {
       // Server-side: use auth() from our server config
       const session = await auth();

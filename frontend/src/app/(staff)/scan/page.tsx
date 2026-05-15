@@ -16,12 +16,12 @@ export default function ScannerPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [eventId, setEventId] = useState<string | null>(null);
   const [eventTitle, setEventTitle] = useState<string>("");
-  const [scans, setScans] = useState<any[]>([]);
+  const [scans, setScans] = useState<unknown[]>([]);
   
   // Offline State
-  const [manifest, setManifest] = useState<any[]>([]);
-  const [pendingScans, setPendingScans] = useState<any[]>([]);
-  const [lastSync, setLastSync] = useState<string | null>(null);
+  const [manifest, setManifest] = useState<unknown[]>([]);
+  const [pendingScans, setPendingScans] = useState<unknown[]>([]);
+  const [, setLastSync] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
 
   useEffect(() => {
@@ -132,7 +132,7 @@ export default function ScannerPage() {
           .join("")
       );
       return JSON.parse(jsonPayload).ticketId;
-    } catch (e) {
+    } catch {
       return null;
     }
   };
@@ -226,41 +226,36 @@ export default function ScannerPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAF9] flex flex-col">
+    <div className="min-h-screen bg-bg flex flex-col font-outfit text-white">
       {/* Header */}
-      <header className="bg-white border-b border-[#E5E7EB] p-4 flex justify-between items-center">
+      <header className="bg-brand-surface/80 backdrop-blur-xl border-b border-white/10 p-4 flex justify-between items-center sticky top-0 z-30">
         <div className="flex-1">
-          <h1 className="font-semibold text-[#111827] font-['Outfit'] text-lg">Scanner Portal</h1>
-          <p className="text-xs text-[#6B7280]">{eventTitle || "Loading event..."}</p>
+          <h1 className="font-bold text-white tracking-tight text-lg">Staff Portal</h1>
+          <p className="text-xs text-gray-400 font-medium truncate max-w-[200px]">{eventTitle || "Connecting..."}</p>
         </div>
         
         <div className="flex items-center gap-3">
           <button
             onClick={handleSync}
             disabled={isSyncing || !eventId}
-            className={`flex flex-col items-end group transition-all ${isSyncing ? "opacity-50" : ""}`}
+            className={`relative flex flex-col items-end group transition-all ${isSyncing ? "opacity-50" : ""}`}
           >
-            <div className="flex items-center gap-1.5 text-xs font-bold text-[#1A7A4A] bg-[#F0FDF4] px-2 py-1 rounded-lg border border-[#DCFCE7] group-hover:bg-[#DCFCE7]">
-              <div className={`w-1.5 h-1.5 rounded-full bg-[#1A7A4A] ${isSyncing ? "animate-pulse" : ""}`} />
-              {isSyncing ? "Syncing..." : "Sync Event"}
+            <div className="flex items-center gap-2 text-[10px] font-bold text-brand-neon bg-brand-neon/10 px-3 py-1.5 rounded-full border border-brand-neon/20 hover:bg-brand-neon/20 transition-colors">
+              <div className={`w-2 h-2 rounded-full bg-brand-neon ${isSyncing ? "animate-pulse shadow-[0_0_8px_rgba(25,210,107,0.8)]" : ""}`} />
+              {isSyncing ? "Syncing..." : "Sync"}
             </div>
             {pendingScans.length > 0 && (
-              <div className="absolute -top-1 -left-1 w-4 h-4 bg-orange-500 text-white text-[9px] flex items-center justify-center rounded-full border-2 border-white animate-bounce">
+              <div className="absolute -top-1 -left-1 w-5 h-5 bg-brand-neon text-bg text-[10px] font-bold flex items-center justify-center rounded-full border-2 border-bg animate-bounce shadow-glow-sm">
                 {pendingScans.length}
               </div>
             )}
-            {lastSync && (
-              <span className="text-[9px] text-gray-400 mt-1">
-                Last: {new Date(lastSync).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </span>
-            )}
           </button>
 
-          <div className="h-8 w-[1px] bg-gray-100 mx-1" />
+          <div className="h-8 w-[1px] bg-white/5 mx-1" />
 
           <button 
             onClick={() => signOut()}
-            className="text-[#6B7280] hover:text-red-600 transition-colors p-2"
+            className="text-gray-400 hover:text-red-500 transition-colors p-2 hover:bg-white/5 rounded-xl"
             title="Sign Out"
           >
             <LogOut className="w-5 h-5" />
@@ -269,28 +264,37 @@ export default function ScannerPage() {
       </header>
 
       {/* Main Scanner Area */}
-      <main className="flex-1 flex flex-col items-center justify-center p-4 relative">
-        <div className="w-full max-w-sm mb-6 text-center">
-          <p className="text-[#6B7280]">
-            Point camera at the ticket QR code
+      <main className="flex-1 flex flex-col items-center justify-center p-6 relative overflow-hidden">
+        {/* Decorative background glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-brand-neon/5 blur-[100px] pointer-events-none" />
+
+        <div className="w-full max-w-sm mb-8 text-center relative z-10">
+          <p className="text-gray-400 font-medium">
+            Scan Ticket QR Code
           </p>
+          <div className="mt-2 h-1 w-12 bg-brand-neon mx-auto rounded-full opacity-50" />
         </div>
 
         {eventId ? (
-          <QRScanner 
-            onScanSuccess={handleScan}
-            isPaused={isProcessing || !!scanResult}
-          />
+          <div className="relative z-10 w-full max-w-sm">
+            <QRScanner 
+              onScanSuccess={handleScan}
+              isPaused={isProcessing || !!scanResult}
+            />
+          </div>
         ) : (
-          <div className="w-full max-w-sm aspect-square bg-gray-200 rounded-2xl animate-pulse flex items-center justify-center">
-             <span className="text-gray-500">Loading assignments...</span>
+          <div className="w-full max-w-sm aspect-square bg-brand-surface rounded-3xl border border-white/5 animate-pulse flex items-center justify-center relative z-10">
+             <span className="text-gray-500 font-medium italic">Assigning event...</span>
           </div>
         )}
 
         {isProcessing && !scanResult && (
-          <div className="absolute inset-0 bg-white/80 flex flex-col items-center justify-center z-10 backdrop-blur-sm">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1A7A4A] mb-4"></div>
-            <p className="font-medium text-[#111827]">Verifying ticket...</p>
+          <div className="absolute inset-0 bg-bg/60 backdrop-blur-md flex flex-col items-center justify-center z-40">
+            <div className="relative w-16 h-16">
+              <div className="absolute inset-0 rounded-full border-4 border-brand-neon/20"></div>
+              <div className="absolute inset-0 rounded-full border-4 border-t-brand-neon animate-spin"></div>
+            </div>
+            <p className="mt-6 font-bold text-white tracking-wide animate-pulse">VERIFYING...</p>
           </div>
         )}
       </main>
@@ -298,31 +302,42 @@ export default function ScannerPage() {
       {/* Result Overlay */}
       {scanResult && (
         <ScanResult 
-          result={scanResult.result as any}
+          result={scanResult.result}
           buyerName={scanResult.buyerName}
           buyerPhone={scanResult.buyerPhone}
           onClose={handleCloseResult}
         />
       )}
 
-      {/* Recent Scans Drawer / List */}
-      <div className="bg-white border-t border-[#E5E7EB] mt-auto">
-        <div className="p-4 border-b border-[#E5E7EB] flex items-center justify-between">
-          <h3 className="font-bold text-sm text-[#111827] uppercase tracking-wider">Session History</h3>
-          <span className="text-xs bg-gray-100 px-2 py-0.5 rounded text-[#6B7280]">{scans.length} scans</span>
+      {/* Recent Scans Drawer */}
+      <div className="bg-brand-surface border-t border-white/10 mt-auto relative z-20">
+        <div className="p-4 border-b border-white/5 flex items-center justify-between">
+          <h3 className="font-bold text-xs text-gray-400 uppercase tracking-widest">Entry History</h3>
+          <span className="text-[10px] bg-brand-neon/10 px-2 py-0.5 rounded font-bold text-brand-neon border border-brand-neon/20">
+            {scans.length} TOTAL
+          </span>
         </div>
-        <div className="max-h-48 overflow-y-auto">
+        <div className="max-h-56 overflow-y-auto hide-scrollbar">
           {scans.length === 0 ? (
-            <div className="p-8 text-center text-sm text-[#6B7280]">No scans in this session yet</div>
+            <div className="p-10 text-center text-sm text-gray-500 italic font-medium">
+              No tickets scanned in this session
+            </div>
           ) : (
-            <div className="divide-y divide-gray-50">
+            <div className="divide-y divide-white/5">
               {scans.map((s) => (
-                <div key={s.id} className="p-4 flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-bold text-[#111827]">{s.ticket.buyerPhone}</p>
-                    <p className="text-[10px] text-[#6B7280]">{new Date(s.scannedAt).toLocaleTimeString()}</p>
+                <div key={s.id} className="p-4 flex items-center justify-between hover:bg-white/[0.02] transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-brand-neon/10 flex items-center justify-center text-brand-neon font-bold text-xs">
+                      {s.ticket.buyerPhone.slice(-2)}
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-white">{s.ticket.buyerPhone}</p>
+                      <p className="text-[10px] text-gray-500 font-medium">
+                        {new Date(s.scannedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                      </p>
+                    </div>
                   </div>
-                  <div className="px-2 py-1 rounded-md bg-green-50 text-green-700 text-[10px] font-bold uppercase">
+                  <div className="px-2.5 py-1 rounded-full bg-brand-neon/10 text-brand-neon text-[9px] font-black uppercase tracking-tighter border border-brand-neon/30 shadow-[0_0_10px_rgba(25,210,107,0.1)]">
                     {s.result}
                   </div>
                 </div>

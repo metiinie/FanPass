@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, ConflictException, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class StaffService {
@@ -22,6 +23,8 @@ export class StaffService {
         data: {
           name: data.name,
           phone: data.phone,
+          email: data.email || `${data.phone.replace('+', '')}@fanpass.com`,
+          password: data.password ? await bcrypt.hash(data.password, 10) : await bcrypt.hash('123456', 10),
           organizerId: targetOrganizerId,
         },
       });
@@ -117,6 +120,8 @@ export class StaffService {
         data: {
           name: data.name,
           phone: data.phone,
+          email: data.email,
+          password: data.password ? await bcrypt.hash(data.password, 10) : undefined,
         },
       });
 

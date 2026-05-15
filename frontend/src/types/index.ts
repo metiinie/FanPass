@@ -11,7 +11,7 @@ export interface EventWithStats {
   ticketsSold: number;
   status: string;
   paymentInstructions?: string | null;
-  paymentAccounts?: any;
+  paymentAccounts?: Record<string, unknown>[] | null;
   expectedAmount?: number | null;
   slug: string;
   createdAt: string;
@@ -74,9 +74,13 @@ export interface TicketDisplay {
   event: {
     title: string;
     venue: string;
+    venueMapUrl?: string | null;
     dateTime: string;
     currency: string;
     ticketPrice: number;
+    status: string;
+    refundPolicy?: string | null;
+    organizerContact?: string | null;
   };
 }
 
@@ -119,6 +123,17 @@ export interface StaffMember {
 }
 
 export type UserRole = "ORGANIZER" | "STAFF" | "SUPER_ADMIN";
+
+export interface Influencer {
+  id: string;
+  name: string;
+  slug: string;
+  profilePhoto?: string | null;
+  teamSupported?: string | null;
+  teamColor?: string | null;
+  isVerified: boolean;
+  totalTicketsSold: number;
+}
 
 export interface SessionUser {
   id: string;

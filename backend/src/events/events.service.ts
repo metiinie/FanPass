@@ -1,9 +1,11 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class EventsService {
+  private readonly logger = new Logger(EventsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly notificationsService: NotificationsService,
@@ -246,7 +248,7 @@ export class EventsService {
       this.notificationsService.sendSms(
         phone,
         `FanPass: "${event.title}" has been CANCELLED. For refund info, visit: ${frontendUrl}/tickets/${ticket?.id}`
-      ).catch(err => console.error(`Failed to notify ${phone} about cancellation:`, err.message));
+      ).catch(err => this.logger.error(`Failed to notify ${phone} about cancellation: ${err.message}`));
     }
 
     return updatedEvent;

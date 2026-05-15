@@ -37,7 +37,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             throw new Error(responseData.message || "Invalid credentials.");
           }
 
-          const payload = responseData;
+          // In standardized API, the actual payload is inside `data`
+          const payload = responseData.data || responseData;
 
           return {
             id: payload.user.id,
@@ -48,8 +49,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             organizerId: payload.user.organizerId,
             accessToken: payload.accessToken,
           };
-        } catch (error: any) {
-          console.error("[AUTH] Authorize Error:", error.message);
+        } catch (error: unknown) {
+          const errorMessage = error instanceof Error ? error.message : "Unknown error";
+          console.error("[AUTH] Authorize Error:", errorMessage);
           return null;
         }
       },

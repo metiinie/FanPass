@@ -23,8 +23,36 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, Response<T>> {
       map((data) => ({
         success: true,
         message: 'Success',
-        data: data || null,
+        data: this.sanitize(data) || null,
       })),
     );
+  }
+
+  private sanitize(data: any): any {
+    if (!data || typeof data !== 'object') {
+      return data;
+    }
+
+    if (Array.isArray(data)) {
+      return data.map((item) => this.sanitize(item));
+    }
+
+    const sanitized = { ...data };
+    const sensitiveKeys = ['password', 'qrToken', 'imageHash'];
+
+    for (const key of sensitiveKeys) {
+      if (key in sanitized) {
+        delete sanitized[key];
+      }
+    }
+
+    // Recursively sanitize nested objects
+    for (const key in sanitized) {
+      if (typeof sanitized[key] === 'object' && sanitized[key] !== null) {
+        sanitized[key] = this.sanitize(sanitized[key]);
+      }
+    }
+
+    return sanitized;
   }
 }

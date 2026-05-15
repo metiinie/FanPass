@@ -1,16 +1,18 @@
-// Admin Management Controller
-import { Controller, Get, Post, Patch, Delete, Param, Body, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Param, Body, Query, UseGuards, BadRequestException, Logger } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { TicketsService } from '../tickets/tickets.service';
+import * as bcrypt from 'bcrypt';
 
 @Controller('admin')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('SUPER_ADMIN')
 export class AdminController {
+  private readonly logger = new Logger(AdminController.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly notificationsService: NotificationsService,
@@ -39,14 +41,11 @@ export class AdminController {
     });
 
     return {
-      success: true,
-      data: {
-        totalEvents,
-        totalTicketsSold,
-        totalSalesValue,
-        totalInfluencers,
-        pendingSubmissions,
-      },
+      totalEvents,
+      totalTicketsSold,
+      totalSalesValue,
+      totalInfluencers,
+      pendingSubmissions,
     };
   }
 
@@ -57,12 +56,11 @@ export class AdminController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
-    const result = await this.ticketsService.getAllSubmissions(
+    return await this.ticketsService.getAllSubmissions(
       status,
       page ? parseInt(page) : 1,
       limit ? parseInt(limit) : 50,
     );
-    return { success: true, data: result };
   }
 
   @Get('approvals/stats')
@@ -91,28 +89,24 @@ export class AdminController {
     }
 
     return {
-      success: true,
-      data: {
-        pending,
-        flagged,
-        approved,
-        rejected,
-        needsReview: pending + flagged,
-        avgApprovalMinutes,
-      },
+      pending,
+      flagged,
+      approved,
+      rejected,
+      needsReview: pending + flagged,
+      avgApprovalMinutes,
     };
   }
 
   // ── Influencer Management ──────────────────────────────────────
   @Get('influencers')
   async getAllInfluencers() {
-    const influencers = await this.prisma.influencer.findMany({
+    return await this.prisma.influencer.findMany({
       include: {
         _count: { select: { events: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
-    return { success: true, data: influencers };
   }
 
   @Post('influencers')
@@ -125,18 +119,29 @@ export class AdminController {
     });
 
     if (existing) {
-      return { 
-        success: false, 
-        message: existing.phone === data.phone ? 'Phone number already registered.' : 'Slug/Profile URL already taken.' 
-      };
+      throw new BadRequestException(
+        existing.phone === data.phone ? 'Phone number already registered.' : 'Slug/Profile URL already taken.'
+      );
     }
 
-    const influencerData = data;
+    // Hash password if provided, otherwise use a default
+    const hashedPassword = await bcrypt.hash(data.password || '123456', 10);
 
     const influencer = await this.prisma.influencer.create({
       data: {
-        ...influencerData,
-        slug,
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        password: hashedPassword,
+        slug: slug,
+        bio: data.bio,
+        teamSupported: data.teamSupported,
+        teamColor: data.teamColor,
+        tiktokUrl: data.tiktokUrl,
+        instagramUrl: data.instagramUrl,
+        telegramUrl: data.telegramUrl,
+        isActive: data.isActive !== undefined ? data.isActive : true,
+        isVerified: data.isVerified !== undefined ? data.isVerified : false,
       },
     });
 
@@ -148,10 +153,10 @@ export class AdminController {
         `Welcome to FanPass, ${influencer.name}! Your account has been provisioned. Login here: ${loginUrl}`
       );
     } catch (error) {
-      console.error('Failed to send onboarding SMS', error);
+      this.logger.error('Failed to send onboarding SMS', error instanceof Error ? error.stack : error);
     }
 
-    return { success: true, message: 'Influencer onboarded.', data: influencer };
+    return influencer;
   }
 
   @Patch('influencers/:id')
@@ -162,15 +167,36 @@ export class AdminController {
         where: { slug: data.slug, id: { not: id } }
       });
       if (existing) {
-        return { success: false, message: 'Slug already taken.' };
+        throw new BadRequestException('Slug already taken.');
       }
     }
 
-    const influencer = await this.prisma.influencer.update({
+    const updateData: any = {
+      name: data.name,
+      email: data.email,
+      phone: data.phone,
+      slug: data.slug,
+      bio: data.bio,
+      teamSupported: data.teamSupported,
+      teamColor: data.teamColor,
+      tiktokUrl: data.tiktokUrl,
+      instagramUrl: data.instagramUrl,
+      telegramUrl: data.telegramUrl,
+      isActive: data.isActive,
+      isVerified: data.isVerified,
+    };
+
+    if (data.password) {
+      updateData.password = await bcrypt.hash(data.password, 10);
+    }
+
+    // Remove undefined fields
+    Object.keys(updateData).forEach(key => updateData[key] === undefined && delete updateData[key]);
+
+    return await this.prisma.influencer.update({
       where: { id },
-      data,
+      data: updateData,
     });
-    return { success: true, message: 'Influencer profile updated.', data: influencer };
   }
 
   @Delete('influencers/:id')
@@ -184,15 +210,12 @@ export class AdminController {
     });
 
     if (ticketCount > 0) {
-      return {
-        success: false,
-        message: 'Cannot delete influencer with ticket sales history. Use deactivation (suspension) instead to preserve records.',
-      };
+      throw new BadRequestException('Cannot delete influencer with ticket sales history. Use deactivation (suspension) instead to preserve records.');
     }
 
     // If no history, allow hard delete
     await this.prisma.influencer.delete({ where: { id } });
-    return { success: true, message: 'Influencer account permanently deleted.' };
+    return { message: 'Influencer account permanently deleted.' };
   }
 
   @Patch('influencers/:id/status')
@@ -240,49 +263,61 @@ export class AdminController {
       }
     }
 
-    return {
-      success: true,
-      message: `${influencer.name} has been ${isActive ? 'activated' : 'suspended'}.`,
-      data: influencer,
-    };
+    return influencer;
   }
 
   @Patch('influencers/:id/verify')
   async verifyInfluencer(@Param('id') id: string) {
-    const influencer = await this.prisma.influencer.update({
+    return await this.prisma.influencer.update({
       where: { id },
       data: { isVerified: true },
     });
-    return {
-      success: true,
-      message: `${influencer.name} is now verified.`,
-      data: influencer,
-    };
   }
 
   // ── Events Management ──────────────────────────────────────────
   @Get('events')
   async getAllEvents() {
-    const events = await this.prisma.event.findMany({
+    return await this.prisma.event.findMany({
       include: {
         influencer: { select: { name: true, phone: true, slug: true } },
         _count: { select: { tickets: true } },
       },
       orderBy: { dateTime: 'desc' },
     });
-    return { success: true, data: events };
   }
 
   @Get('tickets')
   async getAllTickets() {
-    const tickets = await this.prisma.ticket.findMany({
+    return await this.prisma.ticket.findMany({
       include: {
-        event: { select: { title: true } },
+        event: { select: { title: true, ticketPrice: true, currency: true } },
       },
       orderBy: { issuedAt: 'desc' },
       take: 100,
     });
-    return { success: true, data: tickets };
+  @Get('test-ai')
+  async testAI() {
+    try {
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) return { success: false, message: 'GEMINI_API_KEY is missing' };
+
+      const GoogleGenAIModule = await import('@google/genai');
+      const GoogleGenAI = GoogleGenAIModule.GoogleGenAI;
+      const ai = new GoogleGenAI({ apiKey });
+      
+      const model = ai.getGenerativeModel({ model: 'gemini-2.5-flash' });
+      const result = await model.generateContent('Hello, are you active? Respond with "ACTIVE" and your version.');
+      const response = await result.response;
+      
+      return { 
+        success: true, 
+        message: 'Gemini AI is configured correctly.',
+        response: response.text()
+      };
+    } catch (error: any) {
+      this.logger.error('AI Test failed:', error.message);
+      return { success: false, error: error.message };
+    }
   }
 
 }

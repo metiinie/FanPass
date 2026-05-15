@@ -6,35 +6,33 @@ import { fetchBackend } from "@/lib/apiClient";
 import { Loader2, CheckCircle2, XCircle, Clock, AlertCircle, ArrowRight } from "lucide-react";
 import Link from "next/link";
 
+import { TicketDisplay } from "@/types";
+
 export default function TicketStatusPage({ params }: { params: { ticketId: string } }) {
   const router = useRouter();
-  const [status, setStatus] = useState<any>(null);
+  const [status, setStatus] = useState<TicketDisplay | null>(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-
     const checkStatus = async () => {
       try {
         const data = await fetchBackend(`/tickets/${params.ticketId}/status`, { requireAuth: false });
         setStatus(data);
 
-        // Stop polling if approved or rejected
-        // Stop polling if approved or rejected
         if (data.verificationStatus === "VERIFIED" || data.verificationStatus === "REJECTED") {
-          if (interval) clearInterval(interval);
+          clearInterval(intervalId);
         }
-      } catch (err: any) {
-        setError(err.message || "Failed to load status");
-        if (interval) clearInterval(interval);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : "Failed to load status";
+        setError(msg);
+        clearInterval(intervalId);
       }
     };
 
     checkStatus();
-    // Poll every 10 seconds
-    interval = setInterval(checkStatus, 10000);
+    const intervalId = setInterval(checkStatus, 15000);
 
-    return () => clearInterval(interval);
+    return () => clearInterval(intervalId);
   }, [params.ticketId]);
 
   if (error) {
@@ -117,7 +115,7 @@ export default function TicketStatusPage({ params }: { params: { ticketId: strin
           {isApproved && (
              <div>
                 <Link href={`/tickets/${params.ticketId}`} className="w-full inline-flex items-center justify-center gap-2 bg-[#111827] hover:bg-[#1A7A4A] text-white py-4 rounded-xl font-bold transition-colors">
-                  View QR Ticket
+                  View your ticket
                   <ArrowRight className="w-5 h-5" />
                 </Link>
              </div>

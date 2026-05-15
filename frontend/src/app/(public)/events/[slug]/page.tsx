@@ -4,13 +4,15 @@ import { formatCurrency, formatDateTime } from "@/lib/utils";
 import { EVENT_STATUS_LABELS } from "@/lib/constants";
 import { fetchBackend } from "@/lib/apiClient";
 import {
-  MapPin as MapPinIcon,
-  Calendar as CalendarIcon,
-  Users as UsersIcon,
-  Info as InfoIcon,
+  MapPin,
+  Calendar,
+  Users,
+  Info,
   BadgeCheck,
   Trophy,
   Clock,
+  Ticket,
+  ChevronLeft
 } from "lucide-react";
 
 export const revalidate = 30;
@@ -30,206 +32,251 @@ export default async function EventPage({ params }: { params: { slug: string } }
   const inf = event.influencer;
 
   return (
-    <div className="min-h-screen bg-[#F8FAF9] pb-24">
-      {/* Header Banner */}
-      <div
-        className="pt-16 pb-0 w-full relative overflow-hidden"
-        style={{ backgroundColor: inf?.teamColor ? `${inf.teamColor}18` : "#0F1A14" }}
-      >
-        <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-[#1A7A4A] to-transparent" />
+    <div className="min-h-screen bg-bg text-white pb-24 md:pb-12">
+      {/* Navigation Bar (Overlay) */}
+      <div className="fixed top-0 left-0 right-0 z-50 p-4 pointer-events-none">
+        <div className="max-w-6xl mx-auto flex">
+          <Link href="/" className="pointer-events-auto bg-black/50 backdrop-blur-md text-white p-2.5 rounded-full border border-white/10 hover:bg-white/20 transition-all">
+            <ChevronLeft className="w-6 h-6" />
+          </Link>
+        </div>
+      </div>
 
-        <div className="max-w-2xl mx-auto px-6 pt-10 pb-16 relative z-10 text-center">
-          {/* Competition badge */}
+      {/* Hero Background */}
+      <div className="relative h-[50vh] md:h-[60vh] min-h-[400px] w-full">
+        <img 
+          src={event.coverImage || "https://images.unsplash.com/photo-1518605368461-1ee7c511d51c?q=80&w=2000&auto=format&fit=crop"} 
+          alt={event.title} 
+          className="absolute inset-0 w-full h-full object-cover" 
+        />
+        {/* Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/80 to-black/30" />
+        {/* Colorful Glow Overlay based on team color */}
+        <div 
+          className="absolute inset-0 opacity-40 mix-blend-color" 
+          style={{ backgroundColor: inf?.teamColor || "var(--primary)" }}
+        />
+
+        <div className="absolute bottom-0 left-0 right-0 p-6 md:p-12 max-w-6xl mx-auto z-10 animate-slide-up">
           {event.competition && (
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 border border-white/20 text-white/70 text-xs font-semibold uppercase tracking-wider mb-4">
-              <Trophy className="w-3 h-3" />
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/50 backdrop-blur-md border border-white/10 text-white/90 text-xs font-bold uppercase tracking-wider mb-4 shadow-xl">
+              <Trophy className="w-3.5 h-3.5 text-brand-neon" />
               {event.competition}
             </div>
           )}
 
-          {/* Match title */}
           {event.homeTeam && event.awayTeam ? (
-            <h1 className="text-4xl md:text-5xl font-bold text-white font-['Outfit'] mb-2">
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white font-outfit leading-tight mb-3">
               {event.homeTeam}
-              <span className="text-white/40 mx-3 font-light">vs</span>
+              <span className="text-white/30 mx-4 font-light">vs</span>
               {event.awayTeam}
             </h1>
           ) : (
-            <h1 className="text-4xl font-bold text-white font-['Outfit'] mb-2">{event.title}</h1>
+            <h1 className="text-4xl md:text-6xl font-bold text-white font-outfit leading-tight mb-3">
+              {event.title}
+            </h1>
           )}
 
           {event.matchKickoff && (
-            <p className="text-white/60 text-sm flex items-center justify-center gap-1.5 mt-2">
-              <Clock className="w-4 h-4" />
+            <p className="text-white/70 text-lg flex items-center gap-2 font-medium">
+              <Clock className="w-5 h-5 text-brand-neon" />
               Kick-off: {formatDateTime(event.matchKickoff)}
             </p>
           )}
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 -mt-8 relative z-20 space-y-4">
-        {/* Influencer Card */}
-        {inf && (
-          <Link
-            href={`/influencers/${inf.slug}`}
-            className="flex items-center gap-4 bg-white rounded-2xl shadow-sm border border-gray-100 p-4 hover:border-[#1A7A4A]/30 transition-colors"
-          >
-            <div
-              className="w-12 h-12 rounded-xl flex-shrink-0 flex items-center justify-center overflow-hidden text-white font-bold text-lg border-2"
-              style={{ backgroundColor: inf.teamColor || "#1A7A4A", borderColor: inf.teamColor || "#1A7A4A" }}
-            >
-              {inf.profilePhoto ? (
-                <img src={inf.profilePhoto} alt={inf.name} className="w-full h-full object-cover" />
-              ) : (
-                inf.name.charAt(0).toUpperCase()
-              )}
-            </div>
-            <div className="flex-1">
-              <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold mb-0.5">
-                Hosted by
-              </p>
-              <p className="font-bold text-[#111827] flex items-center gap-1.5">
-                {inf.name}
-                {inf.isVerified && <BadgeCheck className="w-4 h-4 text-[#1A7A4A]" />}
-              </p>
-              {inf.teamSupported && (
-                <p className="text-xs text-gray-400">{inf.teamSupported} Fan · Watch Party Host</p>
-              )}
-            </div>
-            <span className="text-[#1A7A4A] text-sm font-semibold">Profile →</span>
-          </Link>
-        )}
-
-        {/* Main event card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-[#E5E7EB] overflow-hidden">
-          {/* Status Banner */}
-          {event.status !== "ACTIVE" && (
-            <div
-              className={`px-6 py-3 text-sm font-semibold tracking-wide text-center uppercase
-                ${isClosed ? "bg-red-50 text-red-600" : ""}
-                ${isCancelled ? "bg-red-100 text-red-700" : ""}
-                ${event.status === "DRAFT" ? "bg-gray-100 text-gray-600" : ""}
-              `}
-            >
-              {EVENT_STATUS_LABELS[event.status]?.label || event.status}
-            </div>
-          )}
-
-          <div className="p-6 sm:p-8 space-y-6">
-            {/* Price tag */}
-            <div className="flex justify-between items-center pb-6 border-b border-[#E5E7EB]">
-              <div>
-                <p className="text-sm text-[#6B7280] font-medium uppercase tracking-wider mb-1">
-                  Ticket Price
-                </p>
-                <p className="text-3xl font-semibold text-[#111827] font-['Outfit']">
-                  {formatCurrency(event.ticketPrice, event.currency)}
+      {/* Main Content Area - Split Screen on Desktop */}
+      <div className="max-w-6xl mx-auto px-6 -mt-4 relative z-20">
+        <div className="flex flex-col md:flex-row gap-8 lg:gap-12 items-start">
+          
+          {/* Left Column - Details (Bento Grid) */}
+          <div className="w-full md:w-2/3 space-y-6">
+            
+            {/* Status Banner */}
+            {event.status !== "ACTIVE" && (
+              <div className="bg-red-500/10 border border-red-500/20 rounded-3xl p-6 flex items-center justify-center animate-fade-in shadow-xl">
+                <p className="text-red-400 font-black uppercase tracking-[0.2em] text-xs flex items-center gap-3">
+                  <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.8)]" />
+                  {EVENT_STATUS_LABELS[event.status]?.label || event.status}
                 </p>
               </div>
-              <div className="text-right">
-                <p className="text-sm text-[#6B7280] font-medium uppercase tracking-wider mb-1">
-                  Status
-                </p>
+            )}
+
+            {/* Influencer Profile Card */}
+            {inf && (
+              <Link
+                href={`/influencers/${inf.slug}`}
+                className="flex items-center gap-6 glass-card rounded-[2.5rem] p-6 glass-card-hover group shadow-2xl"
+              >
                 <div
-                  className={`inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-sm font-medium ${
-                    isSoldOut
-                      ? "bg-orange-100 text-orange-700"
-                      : "bg-green-100 text-green-700"
-                  }`}
+                  className="w-14 h-14 rounded-full flex-shrink-0 flex items-center justify-center overflow-hidden border-2"
+                  style={{ borderColor: inf.teamColor || "var(--primary)" }}
                 >
-                  <span
-                    className={`w-2 h-2 rounded-full ${isSoldOut ? "bg-orange-500" : "bg-green-500"}`}
-                  />
-                  <span>{isSoldOut ? "Sold Out" : "Available"}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Details Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2">
-              <div className="flex items-start space-x-3">
-                <CalendarIcon className="w-5 h-5 text-[#1A7A4A] mt-0.5 shrink-0" />
-                <div>
-                  <p className="text-sm font-medium text-[#111827]">Doors Open</p>
-                  <p className="text-[#6B7280] mt-0.5">{formatDateTime(event.dateTime)}</p>
-                </div>
-              </div>
-
-              <div className="flex items-start space-x-3">
-                <MapPinIcon className="w-5 h-5 text-[#1A7A4A] mt-0.5 shrink-0" />
-                <div>
-                  <p className="text-sm font-medium text-[#111827]">Venue</p>
-                  <p className="text-[#6B7280] mt-0.5">{event.venue}</p>
-                  {event.city && (
-                    <p className="text-sm text-gray-400">{event.city}</p>
-                  )}
-                  {event.venueMapUrl && (
-                    <a
-                      href={event.venueMapUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-[#1A7A4A] text-sm hover:underline mt-1 inline-block"
-                    >
-                      View on Map
-                    </a>
+                  {inf.profilePhoto ? (
+                    <img src={inf.profilePhoto} alt={inf.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-white font-bold text-xl">{inf.name.charAt(0).toUpperCase()}</span>
                   )}
                 </div>
+                <div className="flex-1">
+                  <p className="text-xs text-brand-neon uppercase tracking-wider font-semibold mb-1">
+                    Hosted by
+                  </p>
+                  <p className="font-bold text-white text-lg flex items-center gap-1.5">
+                    {inf.name}
+                    {inf.isVerified && <BadgeCheck className="w-4 h-4 text-brand-neon" />}
+                  </p>
+                  {inf.teamSupported && (
+                    <p className="text-sm text-gray-400">{inf.teamSupported} Fan</p>
+                  )}
+                </div>
+                <div className="hidden sm:flex w-10 h-10 rounded-full bg-white/5 items-center justify-center group-hover:bg-brand-neon transition-colors">
+                  <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-bg transition-colors" />
+                </div>
+              </Link>
+            )}
+
+            {/* Info Bento Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              {/* Date & Time */}
+              <div className="glass-card rounded-[2.5rem] p-8 flex flex-col justify-center shadow-2xl relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                  <Calendar className="w-20 h-20" />
+                </div>
+                <Calendar className="w-8 h-8 text-brand-neon mb-4" />
+                <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-2">Watch Party Starts</p>
+                <p className="text-white font-bold text-xl tracking-tight leading-tight">{formatDateTime(event.dateTime)}</p>
               </div>
 
+              {/* Venue */}
+              <div className="glass-card rounded-[2.5rem] p-8 flex flex-col justify-center shadow-2xl relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                  <MapPin className="w-20 h-20" />
+                </div>
+                <MapPin className="w-8 h-8 text-brand-neon mb-4" />
+                <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-2">Location Venue</p>
+                <p className="text-white font-bold text-xl tracking-tight leading-tight truncate">{event.venue}</p>
+                <p className="text-sm text-gray-400 font-medium mt-1">{event.city}</p>
+                {event.venueMapUrl && (
+                  <a
+                    href={event.venueMapUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-brand-neon text-[10px] font-black uppercase tracking-widest hover:underline mt-4 inline-flex items-center gap-1.5"
+                  >
+                    Open In Maps <ArrowRight className="w-3 h-3" />
+                  </a>
+                )}
+              </div>
+
+              {/* About - Full Width */}
               {event.description && (
-                <div className="flex items-start space-x-3 sm:col-span-2">
-                  <InfoIcon className="w-5 h-5 text-[#1A7A4A] mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-sm font-medium text-[#111827]">About</p>
-                    <p className="text-[#6B7280] mt-0.5 whitespace-pre-wrap">{event.description}</p>
+                <div className="glass-card rounded-[2.5rem] p-8 sm:col-span-2 shadow-2xl">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="p-2.5 rounded-xl bg-brand-neon/10 text-brand-neon">
+                      <Info className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-xl font-bold text-white tracking-tight font-outfit">Event Details</h3>
                   </div>
+                  <p className="text-gray-300 leading-relaxed whitespace-pre-wrap text-lg font-medium">{event.description}</p>
                 </div>
               )}
-            </div>
-
-            {/* Availability Bar */}
-            <div className="pt-6 border-t border-[#E5E7EB]">
-              <div className="flex justify-between text-sm mb-2">
-                <span className="font-medium text-[#111827] flex items-center gap-1.5">
-                  <UsersIcon className="w-4 h-4 text-[#6B7280]" />
-                  Capacity
-                </span>
-                <span className="text-[#6B7280]">
-                  {availableSeats} {availableSeats === 1 ? "seat" : "seats"} left
-                </span>
-              </div>
-              <div className="h-2 w-full bg-[#E5E7EB] rounded-full overflow-hidden">
-                <div
-                  className={`h-full ${isSoldOut ? "bg-orange-500" : "bg-[#1A7A4A]"}`}
-                  style={{
-                    width: `${Math.min(100, (event.ticketsSold / event.maxCapacity) * 100)}%`,
-                  }}
-                />
-              </div>
             </div>
           </div>
+
+          {/* Right Column - Sticky Ticket Widget (Desktop) */}
+          <div className="w-full md:w-1/3 md:sticky md:top-32 pb-8">
+            <div className="glass-card rounded-[2.5rem] p-8 shadow-2xl relative overflow-hidden">
+              {/* Glow effect behind widget */}
+              <div className="absolute top-0 right-0 w-32 h-32 bg-brand-neon/20 blur-[50px] rounded-full pointer-events-none" />
+
+              <div className="relative z-10">
+                <div className="flex justify-between items-end mb-8">
+                  <div>
+                    <p className="text-sm text-gray-400 font-medium uppercase tracking-wider mb-1">
+                      Ticket Price
+                    </p>
+                    <p className="text-4xl font-bold text-white font-outfit">
+                      {formatCurrency(event.ticketPrice, event.currency)}
+                    </p>
+                  </div>
+                  <div
+                    className={`px-3 py-1.5 rounded-xl text-sm font-bold flex items-center gap-1.5 border ${
+                      isSoldOut
+                        ? "bg-red-500/10 text-red-400 border-red-500/20"
+                        : "bg-brand-neon/10 text-brand-neon border-brand-neon/20"
+                    }`}
+                  >
+                    <span className={`w-2 h-2 rounded-full ${isSoldOut ? "bg-red-500" : "bg-brand-neon"}`} />
+                    {isSoldOut ? "Sold Out" : "Available"}
+                  </div>
+                </div>
+
+                {/* Capacity Bar */}
+                <div className="mb-8">
+                  <div className="flex justify-between text-sm mb-2">
+                    <span className="font-medium text-white flex items-center gap-1.5">
+                      <Users className="w-4 h-4 text-gray-400" />
+                      Capacity
+                    </span>
+                    <span className="text-gray-400">
+                      {availableSeats} seats left
+                    </span>
+                  </div>
+                  <div className="h-2.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
+                    <div
+                      className={`h-full rounded-full ${isSoldOut ? "bg-red-500" : "bg-brand-neon"}`}
+                      style={{
+                        width: `${Math.min(100, (event.ticketsSold / event.maxCapacity) * 100)}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Action Button - Desktop Only (Mobile uses floating bar) */}
+                <div className="hidden md:block">
+                  {event.status === "ACTIVE" && !isSoldOut ? (
+                    <Link
+                      href={`/events/${event.slug}/buy`}
+                      className="flex items-center justify-center gap-2 w-full py-4 rounded-2xl font-bold tracking-wide bg-brand-neon text-bg hover:bg-white transition-all shadow-glow-brand hover:shadow-glow-md"
+                    >
+                      <Ticket className="w-5 h-5" />
+                      Get Tickets Now
+                    </Link>
+                  ) : (
+                    <button
+                      disabled
+                      className="block w-full py-4 rounded-2xl font-bold tracking-wide text-center bg-white/5 text-gray-500 cursor-not-allowed border border-white/5"
+                    >
+                      {isSoldOut ? "Sold Out" : "Sales Closed"}
+                    </button>
+                  )}
+                </div>
+             </div>
+          </div>
+
         </div>
       </div>
 
-      {/* Floating Action Bar */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-[#E5E7EB] z-50">
-        <div className="max-w-2xl mx-auto">
-          {event.status === "ACTIVE" && !isSoldOut ? (
-            <Link
-              href={`/events/${event.slug}/buy`}
-              className="block w-full py-4 rounded-xl font-semibold tracking-wide text-center bg-[#1A7A4A] text-white hover:bg-[#0F4D2E] transition-colors shadow-[0_4px_14px_0_rgba(26,122,74,0.39)]"
-            >
-              Buy Ticket
-            </Link>
-          ) : (
-            <button
-              disabled
-              className="block w-full py-4 rounded-xl font-semibold tracking-wide text-center bg-gray-100 text-gray-500 cursor-not-allowed"
-            >
-              {isSoldOut ? "Sold Out" : "Sales Closed"}
-            </button>
-          )}
-        </div>
+      {/* Floating Action Bar - Mobile Only */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 p-4 bg-bg/80 backdrop-blur-xl border-t border-white/10 z-50">
+        {event.status === "ACTIVE" && !isSoldOut ? (
+          <Link
+            href={`/events/${event.slug}/buy`}
+            className="flex items-center justify-center gap-2 w-full py-4 rounded-2xl font-bold tracking-wide bg-brand-neon text-bg transition-colors shadow-glow-sm"
+          >
+            <Ticket className="w-5 h-5" />
+            Get Tickets
+          </Link>
+        ) : (
+          <button
+            disabled
+            className="block w-full py-4 rounded-2xl font-bold tracking-wide text-center bg-white/5 text-gray-500 cursor-not-allowed"
+          >
+            {isSoldOut ? "Sold Out" : "Sales Closed"}
+          </button>
+        )}
       </div>
     </div>
   );

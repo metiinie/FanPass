@@ -33,7 +33,7 @@ export default function TicketPurchasePage({ params }: { params: { slug: string 
   useEffect(() => {
     const fetchEvent = async () => {
       try {
-        const data = await fetchBackend(`/events/slug/${params.slug}`, { requireAuth: false });
+        const data = await fetchBackend(`/events/public/${params.slug}`, { requireAuth: false });
         setEvent(data);
       } catch (err: any) {
         setError(err.message || "Failed to load event");
@@ -131,7 +131,7 @@ export default function TicketPurchasePage({ params }: { params: { slug: string 
     );
   }
 
-  const expectedAmount = (event.expectedAmount || Math.round(event.ticketPrice / 100)) * formData.ticketCount;
+  const totalAmountSantim = (event.expectedAmount ? event.expectedAmount * 100 : event.ticketPrice) * formData.ticketCount;
 
   return (
     <div className="min-h-screen bg-[#F8FAF9] py-12 px-4">
@@ -159,7 +159,7 @@ export default function TicketPurchasePage({ params }: { params: { slug: string 
               <div className="bg-[#1A7A4A]/5 p-4 rounded-xl mb-6">
                 <p className="text-sm text-[#1A7A4A] font-medium mb-1">Total to pay:</p>
                 <div className="text-3xl font-bold text-[#1A7A4A] font-['Outfit']">
-                  {formatCurrency(expectedAmount, event.currency)}
+                  {formatCurrency(totalAmountSantim, event.currency)}
                 </div>
                 {formData.ticketCount > 1 && (
                   <p className="text-xs text-[#1A7A4A]/80 mt-1">

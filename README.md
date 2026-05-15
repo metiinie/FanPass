@@ -46,25 +46,25 @@ It eliminates manual verification steps by connecting directly to payment provid
 
 ### 1. Organizer Flow
 - Go to `/login`
-- Enter the seeded Organizer phone: **+251911000001**
-- Click "Continue" (OTP simulation runs in console, or enter any 6 digits in development bypass)
+- Enter the seeded Organizer email: **organizer@fanpass.app**
+- Enter the password: **password123**
 - You will be redirected to the **Organizer Dashboard** (`/dashboard`).
 - Explore Event creation, live statistics monitoring, and Staff management.
 
 ### 2. Fan Purchase Flow
 - From the Dashboard, view the Public Page for an active event (e.g., `/events/epl-arsenal-man-city-01`).
 - Click "Buy Ticket".
-- Enter a phone number.
-- For testing without real Telebirr credentials, click the **"DEV: Simulate Direct Payment"** button.
-- You will be redirected instantly to your generated Digital Ticket containing a QR Code.
+- Enter your phone number and upload a payment receipt screenshot.
+- After a short delay (AI processing), you can view your ticket.
 
 ### 3. Staff Scan Flow
 - Open an incognito window or sign out.
 - Go to `/login`.
-- Enter the seeded Staff phone: **+251922000002**.
+- Enter the seeded Staff email: **staff@fanpass.app**
+- Enter the password: **password123**
 - You will be redirected to the **Scanner Portal** (`/scan`).
 - Use your device camera to scan the QR code generated in the Fan Purchase flow.
-- A "Valid Entry" success screen will appear. Scanning the same code again will display "Already Used".
+- A "Valid Entry" success screen will appear.
 
 ## Payment Integration Notes (Telebirr)
 The Telebirr STB integration is located at `src/server/payments/telebirr.ts`. 

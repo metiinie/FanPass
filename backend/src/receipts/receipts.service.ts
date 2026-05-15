@@ -59,7 +59,9 @@ export class ReceiptsService {
   ): Promise<ReceiptExtraction> {
     const aiEnabled = process.env.AI_RECEIPT_EXTRACTION !== 'false';
 
-    if (!aiEnabled || !process.env.ANTHROPIC_API_KEY) {
+    const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENAI_API_KEY;
+
+    if (!aiEnabled || !apiKey) {
       this.logger.warn('AI extraction disabled or no API key. Returning empty extraction.');
       return {
         amount: null,
@@ -76,26 +78,23 @@ export class ReceiptsService {
 
     try {
       // Dynamic import to avoid crash when package is not installed
-      const Anthropic = (await import('@anthropic-ai/sdk')).default;
-      const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+      const GoogleGenAIModule = await import('@google/genai');
+      const GoogleGenAI = GoogleGenAIModule.GoogleGenAI;
+      const ai = new GoogleGenAI({ apiKey });
 
-      const response = await client.messages.create({
-        model: 'claude-sonnet-4-5',
-        max_tokens: 500,
-        messages: [
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: [
           {
             role: 'user',
-            content: [
+            parts: [
               {
-                type: 'image',
-                source: {
-                  type: 'base64',
-                  media_type: mimeType,
+                inlineData: {
                   data: imageBase64,
+                  mimeType: mimeType,
                 },
               },
               {
-                type: 'text',
                 text: `You are a payment receipt reader. Extract the following fields from this receipt image and return ONLY valid JSON with no other text:
 
 {
@@ -121,7 +120,7 @@ If you cannot read the receipt clearly, set confidence below 0.4.`,
         ],
       });
 
-      const text = response.content[0].type === 'text' ? response.content[0].text : '{}';
+      const text = response.text || '{}';
 
       try {
         const parsed = JSON.parse(text.replace(/```json|```/g, '').trim());
@@ -162,7 +161,8 @@ If you cannot read the receipt clearly, set confidence below 0.4.`,
    */
   async computeImageHash(imageBuffer: Buffer): Promise<string> {
     try {
-      const sharp = (await import('sharp')).default;
+      const sharpModule = await import('sharp');
+      const sharp = sharpModule.default || sharpModule;
       // Resize to 8x8 greyscale for perceptual hashing
       const pixels = await sharp(imageBuffer)
         .resize(8, 8, { fit: 'fill' })

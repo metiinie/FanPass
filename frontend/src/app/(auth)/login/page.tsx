@@ -37,61 +37,78 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAF9] flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-sm border border-[#E5E7EB] p-6 sm:p-8">
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-semibold text-[#111827] tracking-wide mb-2 font-['Outfit']">
+    <div className="min-h-screen bg-bg flex flex-col items-center justify-center p-6 relative overflow-hidden font-outfit">
+      {/* Background Decorative Glows */}
+      <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-brand-neon/5 blur-[120px] rounded-full pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-brand-neon/5 blur-[120px] rounded-full pointer-events-none" />
+
+      <div className="w-full max-w-md bg-brand-surface rounded-[2.5rem] shadow-2xl border border-white/5 p-8 sm:p-12 relative z-10">
+        <div className="text-center mb-10">
+          <div className="inline-flex p-3 rounded-2xl bg-brand-neon/10 text-brand-neon mb-6 border border-brand-neon/20 shadow-glow-sm">
+            <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M2 9V5.2a2 2 0 0 1 2-2h15.3a2 2 0 0 1 2 2V9" />
+              <path d="M22 15V18.8a2 2 0 0 1-2 2H4.7a2 2 0 0 1-2-2V15" />
+              <path d="M13 15h.01" />
+              <path d="M11 15h.01" />
+              <path d="M15 15h.01" />
+              <path d="M9 15h.01" />
+            </svg>
+          </div>
+          <h1 className="text-4xl font-black text-white tracking-tighter mb-3">
             Welcome back
           </h1>
-          <p className="text-[#6B7280]">
-            Sign in with your email and password
+          <p className="text-gray-400 font-medium">
+            Sign in to manage your FanPass account
           </p>
         </div>
 
         {error && (
-          <div className="mb-4 p-3 rounded-xl bg-red-50 text-red-500 text-sm border border-red-100">
+          <div className="mb-6 p-4 rounded-2xl bg-red-500/10 text-red-500 text-sm border border-red-500/20 font-medium animate-in fade-in slide-in-from-top-2">
             {error}
           </div>
         )}
 
-        <form onSubmit={handleLogin} className="space-y-4">
+        <form onSubmit={handleLogin} className="space-y-6">
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-[#111827] mb-1">
-              Email
+            <label htmlFor="email" className="block text-xs font-black text-gray-500 uppercase tracking-widest mb-2 ml-1">
+              Email Address
             </label>
             <input
               id="email"
               type="email"
-              placeholder="admin@example.com"
+              placeholder="admin@fanpass.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border-2 border-[#E5E7EB] focus:border-[#1A7A4A] focus:outline-none transition-colors"
+              className="w-full px-5 py-4 rounded-2xl bg-white/5 border-2 border-white/5 text-white placeholder:text-gray-600 focus:border-brand-neon/50 focus:bg-white/10 focus:outline-none transition-all"
               required
             />
           </div>
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-[#111827] mb-1">
+            <label htmlFor="password" className="block text-xs font-black text-gray-500 uppercase tracking-widest mb-2 ml-1">
               Password
             </label>
             <input
               id="password"
               type="password"
-              placeholder="••••••"
+              placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border-2 border-[#E5E7EB] focus:border-[#1A7A4A] focus:outline-none transition-colors"
+              className="w-full px-5 py-4 rounded-2xl bg-white/5 border-2 border-white/5 text-white placeholder:text-gray-600 focus:border-brand-neon/50 focus:bg-white/10 focus:outline-none transition-all"
               required
             />
           </div>
           <button
             type="submit"
             disabled={isLoading || !email || !password}
-            className="w-full py-3 px-4 rounded-xl font-semibold tracking-wide bg-[#1A7A4A] text-white hover:bg-[#0F4D2E] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="w-full py-4 px-6 rounded-2xl font-bold tracking-tight bg-brand-neon text-bg hover:shadow-glow-md disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-[0.98] mt-4"
           >
-            {isLoading ? "Signing In..." : "Sign In"}
+            {isLoading ? "AUTHENTICATING..." : "SIGN IN"}
           </button>
         </form>
       </div>
+      <p className="mt-8 text-gray-500 text-sm font-medium">
+        Contact support if you lost your access
+      </p>
     </div>
   );
 }

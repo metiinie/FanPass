@@ -63,11 +63,10 @@ export default function InfluencerProfilePage() {
     setError("");
     try {
       // 1. Get signed upload parameters from backend
-      const sigRes = await fetch(`${backendUrl}/influencers/upload-signature`, {
+      const sigData = await fetchBackend("/influencers/upload-signature", {
         method: "POST",
-        headers: { Authorization: `Bearer ${(session as any)?.accessToken}` },
       });
-      const { timestamp, signature, cloudName, apiKey, folder } = await sigRes.json();
+      const { timestamp, signature, cloudName, apiKey, folder } = sigData;
 
       // 2. Upload directly to Cloudinary (file never touches our server)
       const formData = new FormData();

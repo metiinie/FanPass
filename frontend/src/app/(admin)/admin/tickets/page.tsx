@@ -18,8 +18,8 @@ export default function AdminTicketsPage() {
 
   const loadTickets = async () => {
     try {
-      const response = await fetchBackend("/admin/tickets");
-      setTickets(response.data);
+      const data = await fetchBackend("/admin/tickets");
+      setTickets(data);
     } catch (error) {
       toast.error("Failed to load tickets");
     } finally {
@@ -93,7 +93,7 @@ export default function AdminTicketsPage() {
                     </td>
                     <td className="px-6 py-4 text-sm text-[#111827]">{t.buyerPhone}</td>
                     <td className="px-6 py-4 text-sm font-bold text-[#111827]">
-                      {t.transaction ? formatCurrency(t.transaction.amount) : "N/A"}
+                      {formatCurrency(t.event.ticketPrice * (t.ticketCount || 1))}
                     </td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${getStatusColor(t.status)}`}>

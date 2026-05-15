@@ -29,6 +29,7 @@ export default function EditEventPage({ params }: { params: { eventId: string } 
     competition: "",
     matchKickoffTime: "",
     paymentInstructions: "",
+    coverImage: "",
     paymentAccounts: [] as { type: string; number: string; name: string }[],
   });
 
@@ -61,6 +62,7 @@ export default function EditEventPage({ params }: { params: { eventId: string } 
           competition: event.competition || "",
           matchKickoffTime: mkTime,
           paymentInstructions: event.paymentInstructions || "",
+          coverImage: event.coverImage || "",
           paymentAccounts: event.paymentAccounts || [],
         });
       } catch (err: any) {
@@ -124,6 +126,7 @@ export default function EditEventPage({ params }: { params: { eventId: string } 
           awayTeam: formData.awayTeam || undefined,
           competition: formData.competition || undefined,
           matchKickoff,
+          coverImage: formData.coverImage || undefined,
           paymentInstructions: formData.paymentInstructions,
           paymentAccounts: formData.paymentAccounts,
           expectedAmount: Math.round(parseFloat(formData.ticketPrice)),
@@ -190,9 +193,57 @@ export default function EditEventPage({ params }: { params: { eventId: string } 
                 <label className="block text-sm font-medium text-[#111827] mb-1">Description</label>
                 <textarea name="description" rows={3} value={formData.description} onChange={handleChange} className="w-full px-4 py-3 rounded-xl border-2 border-[#E5E7EB] focus:border-[#1A7A4A] focus:outline-none" />
               </div>
-              <div className="grid grid-cols-2 gap-5">
-                <input name="venue" type="text" placeholder="Venue" value={formData.venue} onChange={handleChange} className="w-full px-4 py-3 rounded-xl border-2 border-[#E5E7EB]" />
-                <input name="city" type="text" placeholder="City" value={formData.city} onChange={handleChange} className="w-full px-4 py-3 rounded-xl border-2 border-[#E5E7EB]" />
+              <div>
+                <label className="block text-sm font-medium text-[#111827] mb-3">Event Cover Image</label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+                  {[
+                    "https://images.unsplash.com/photo-1518605368461-1ee7c511d51c?q=80&w=800&auto=format&fit=crop",
+                    "https://images.unsplash.com/photo-1556056504-5c7696c4c28d?q=80&w=800&auto=format&fit=crop",
+                    "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?q=80&w=800&auto=format&fit=crop",
+                    "https://images.unsplash.com/photo-1522778119026-d647f0596c20?q=80&w=800&auto=format&fit=crop"
+                  ].map((url) => (
+                    <button
+                      key={url}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, coverImage: url })}
+                      className={`relative aspect-video rounded-xl overflow-hidden border-2 transition-all ${
+                        formData.coverImage === url ? "border-[#1A7A4A] ring-2 ring-[#1A7A4A]/20" : "border-transparent opacity-60 hover:opacity-100"
+                      }`}
+                    >
+                      <img src={url} alt="Preset" className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+                <div className="relative">
+                  <input
+                    name="coverImage"
+                    type="url"
+                    placeholder="Or paste a custom image URL..."
+                    value={formData.coverImage}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 rounded-xl border-2 border-[#E5E7EB] focus:border-[#1A7A4A] focus:outline-none transition-colors"
+                  />
+                  {formData.coverImage && (
+                    <div className="mt-2 aspect-video w-full max-w-[200px] rounded-xl overflow-hidden border border-gray-200">
+                      <img src={formData.coverImage} alt="Preview" className="w-full h-full object-cover" onError={(e) => (e.currentTarget.style.display = 'none')} />
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                  <label className="block text-sm font-medium text-[#111827] mb-1">Venue Name *</label>
+                  <input name="venue" type="text" required value={formData.venue} onChange={handleChange} className="w-full px-4 py-3 rounded-xl border-2 border-[#E5E7EB] focus:border-[#1A7A4A] focus:outline-none" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#111827] mb-1">Venue Map URL (Google Maps)</label>
+                  <input name="venueMapUrl" type="url" placeholder="e.g., https://goo.gl/maps/..." value={formData.venueMapUrl} onChange={handleChange} className="w-full px-4 py-3 rounded-xl border-2 border-[#E5E7EB] focus:border-[#1A7A4A] focus:outline-none" />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-[#111827] mb-1">City (for filtering) *</label>
+                <input name="city" type="text" required placeholder="e.g., Addis Ababa" value={formData.city} onChange={handleChange} className="w-full px-4 py-3 rounded-xl border-2 border-[#E5E7EB] focus:border-[#1A7A4A] focus:outline-none" />
               </div>
               <div className="grid grid-cols-2 gap-5">
                 <input name="date" type="date" value={formData.date} onChange={handleChange} className="w-full px-4 py-3 rounded-xl border-2 border-[#E5E7EB]" />

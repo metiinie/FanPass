@@ -3,9 +3,14 @@
 import { useState, useEffect } from "react";
 import { Download, X, Share } from "lucide-react";
 
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+}
+
 export default function InstallPrompt() {
   const [showPrompt, setShowPrompt] = useState(false);
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isIOS, setIsIOS] = useState(false);
 
   useEffect(() => {
@@ -21,20 +26,20 @@ export default function InstallPrompt() {
     }
 
     // Detect iOS
-    const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !("MSStream" in window);
     setIsIOS(isIOSDevice);
 
     if (isIOSDevice) {
       setShowPrompt(true);
     } else {
-      const handler = (e: any) => {
+      const handler = (e: Event) => {
         e.preventDefault();
-        setDeferredPrompt(e);
+        setDeferredPrompt(e as BeforeInstallPromptEvent);
         setShowPrompt(true);
       };
 
-      window.addEventListener("beforeinstallprompt", handler);
-      return () => window.removeEventListener("beforeinstallprompt", handler);
+      window.addEventListener("beforeinstallprompt", handler as EventListener);
+      return () => window.removeEventListener("beforeinstallprompt", handler as EventListener);
     }
   }, []);
 

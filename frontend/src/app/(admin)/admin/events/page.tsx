@@ -19,8 +19,8 @@ export default function AllEventsPage() {
 
   const loadEvents = async () => {
     try {
-      const response = await fetchBackend("/admin/events");
-      setEvents(response.data);
+      const data = await fetchBackend("/admin/events");
+      setEvents(data);
     } catch (error) {
       toast.error("Failed to load events");
     } finally {
@@ -30,7 +30,7 @@ export default function AllEventsPage() {
 
   const filteredEvents = events.filter(e => 
     e.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    e.organizer.name.toLowerCase().includes(searchTerm.toLowerCase())
+    e.influencer.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -92,7 +92,7 @@ export default function AllEventsPage() {
                       <User className="w-4 h-4 text-[#1A7A4A]" />
                       <div className="text-xs">
                         <p className="text-[#6B7280]">Organizer</p>
-                        <p className="font-bold text-[#111827]">{event.organizer.name}</p>
+                        <p className="font-bold text-[#111827]">{event.influencer.name}</p>
                       </div>
                     </div>
                     <div className="bg-[#F8FAF9] px-3 py-2 rounded-xl flex items-center gap-2">
