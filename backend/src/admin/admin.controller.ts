@@ -295,6 +295,8 @@ export class AdminController {
       orderBy: { issuedAt: 'desc' },
       take: 100,
     });
+  }
+
   @Get('test-ai')
   async testAI() {
     try {
@@ -305,14 +307,15 @@ export class AdminController {
       const GoogleGenAI = GoogleGenAIModule.GoogleGenAI;
       const ai = new GoogleGenAI({ apiKey });
       
-      const model = ai.getGenerativeModel({ model: 'gemini-2.5-flash' });
-      const result = await model.generateContent('Hello, are you active? Respond with "ACTIVE" and your version.');
-      const response = await result.response;
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.0-flash',
+        contents: [{ role: 'user', parts: [{ text: 'Hello, are you active? Respond with "ACTIVE" and your version.' }] }]
+      });
       
       return { 
         success: true, 
         message: 'Gemini AI is configured correctly.',
-        response: response.text()
+        response: response.text
       };
     } catch (error: any) {
       this.logger.error('AI Test failed:', error.message);
