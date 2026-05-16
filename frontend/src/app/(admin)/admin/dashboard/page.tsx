@@ -3,6 +3,7 @@ import { formatCurrency } from "@/lib/utils";
 import { fetchBackend } from "@/lib/apiClient";
 import { redirect } from "next/navigation";
 import { LayoutDashboard, Users, Calendar, Wallet, TrendingUp, ShieldCheck, Percent, Settings } from "lucide-react";
+import { AdminStats } from "@/types";
 
 export default async function AdminDashboardPage() {
   const session = await auth();

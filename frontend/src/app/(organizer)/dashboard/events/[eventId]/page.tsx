@@ -229,9 +229,9 @@ export default function EventDashboardPage({ params }: { params: { eventId: stri
               className="flex items-center gap-2 bg-[#1A7A4A] text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-[#14623b] transition-all shadow-md shadow-green-100 relative active:scale-95"
             >
               <CheckCircle2 className="w-4 h-4" /> Review Tickets
-              {submissionsStatus?.needsReview > 0 && (
+              {(submissionsStatus?.needsReview ?? 0) > 0 && (
                 <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-white ring-4 ring-red-500/10">
-                  {submissionsStatus.needsReview}
+                  {submissionsStatus?.needsReview}
                 </span>
               )}
             </Link>
@@ -348,13 +348,13 @@ export default function EventDashboardPage({ params }: { params: { eventId: stri
         {/* Pending */}
         <div className="bg-white p-7 rounded-[2rem] border border-[#E5E7EB] shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between">
           <div className="flex items-center gap-3 mb-6">
-            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${submissionsStatus?.needsReview > 0 ? 'bg-red-50 text-red-600 animate-pulse' : 'bg-gray-50 text-gray-400'}`}>
+            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${(submissionsStatus?.needsReview ?? 0) > 0 ? 'bg-red-50 text-red-600 animate-pulse' : 'bg-gray-50 text-gray-400'}`}>
               <CheckCircle2 className="w-5 h-5" />
             </div>
             <h3 className="font-bold text-gray-400 uppercase tracking-widest text-[10px]">Pending Approval</h3>
           </div>
           <div>
-            <p className={`text-3xl font-black font-['Outfit'] ${submissionsStatus?.needsReview > 0 ? 'text-red-500' : 'text-[#111827]'}`}>
+            <p className={`text-3xl font-black font-['Outfit'] ${(submissionsStatus?.needsReview ?? 0) > 0 ? 'text-red-500' : 'text-[#111827]'}`}>
               {submissionsStatus?.needsReview || 0}
             </p>
             <Link href={`/dashboard/events/${params.eventId}/approvals`} className="text-xs text-gray-400 hover:text-[#1A7A4A] font-bold mt-1 underline decoration-dotted">

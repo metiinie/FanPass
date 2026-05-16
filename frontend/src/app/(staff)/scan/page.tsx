@@ -10,17 +10,39 @@ import { useRouter } from "next/navigation";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3001";
 
+interface ManifestTicket {
+  id: string;
+  status: string;
+  buyerName: string | null;
+  buyerPhone: string;
+}
+
+interface ScanLog {
+  id: string;
+  result: string;
+  scannedAt: string;
+  ticket: {
+    buyerPhone: string;
+  };
+}
+
+interface PendingScan {
+  token: string;
+  ticketId: string;
+  scannedAt: string;
+}
+
 export default function ScannerPage() {
   const router = useRouter();
   const [scanResult, setScanResult] = useState<IScanResult | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [eventId, setEventId] = useState<string | null>(null);
   const [eventTitle, setEventTitle] = useState<string>("");
-  const [scans, setScans] = useState<unknown[]>([]);
+  const [scans, setScans] = useState<ScanLog[]>([]);
   
   // Offline State
-  const [manifest, setManifest] = useState<unknown[]>([]);
-  const [pendingScans, setPendingScans] = useState<unknown[]>([]);
+  const [manifest, setManifest] = useState<ManifestTicket[]>([]);
+  const [pendingScans, setPendingScans] = useState<PendingScan[]>([]);
   const [, setLastSync] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
 
@@ -160,8 +182,7 @@ export default function ScannerPage() {
         
         if (!res.ok || json.success === false) {
           setScanResult({ 
-            result: json.result || "INVALID", 
-            message: json.message 
+            result: json.result || "INVALID",
           });
           return true;
         }
@@ -176,10 +197,10 @@ export default function ScannerPage() {
       } catch (error) {
         // Fallback to offline manifest if network error
         const ticketId = decodeTicketId(token);
-        const ticketInManifest = manifest.find(t => t.id === ticketId);
+        const ticketInManifest = manifest.find((t: ManifestTicket) => t.id === ticketId);
 
         if (ticketInManifest) {
-          if (ticketInManifest.status === "SCANNED" || pendingScans.some(s => s.ticketId === ticketId)) {
+          if (ticketInManifest.status === "SCANNED" || pendingScans.some((s: PendingScan) => s.ticketId === ticketId)) {
             setScanResult({ result: "ALREADY_USED" });
           } else {
             setScanResult({
@@ -187,7 +208,7 @@ export default function ScannerPage() {
               buyerName: ticketInManifest.buyerName,
               buyerPhone: ticketInManifest.buyerPhone,
             });
-            const newPending = [...pendingScans, { token, ticketId, scannedAt: new Date().toISOString() }];
+            const newPending: PendingScan[] = [...pendingScans, { token, ticketId, scannedAt: new Date().toISOString() }];
             setPendingScans(newPending);
             localStorage.setItem(`pending_scans_${eventId}`, JSON.stringify(newPending));
           }
@@ -324,7 +345,7 @@ export default function ScannerPage() {
             </div>
           ) : (
             <div className="divide-y divide-white/5">
-              {scans.map((s) => (
+              {scans.map((s: ScanLog) => (
                 <div key={s.id} className="p-4 flex items-center justify-between hover:bg-white/[0.02] transition-colors">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-brand-neon/10 flex items-center justify-center text-brand-neon font-bold text-xs">

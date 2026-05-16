@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { PAYMENT_METHODS } from "@/lib/constants";
 import { ArrowRight, ArrowLeft, CheckCircle2, Save } from "lucide-react";
 import { fetchBackend } from "@/lib/apiClient";
 import { toast } from "sonner";

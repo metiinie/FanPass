@@ -1,24 +1,6 @@
-export interface EventWithStats {
-  id: string;
-  title: string;
-  description: string | null;
-  venue: string;
-  venueMapUrl: string | null;
-  dateTime: string;
-  ticketPrice: number;
-  currency: string;
-  maxCapacity: number;
-  ticketsSold: number;
-  status: string;
-  paymentInstructions?: string | null;
-  paymentAccounts?: Record<string, unknown>[] | null;
-  expectedAmount?: number | null;
-  slug: string;
-  createdAt: string;
-  organizerId: string;
-}
 
-export type VerificationStatus = "PENDING_EXTRACTION" | "EXTRACTED_HIGH_CONFIDENCE" | "EXTRACTED_LOW_CONFIDENCE" | "MANUAL_REVIEW_REQUIRED" | "VERIFIED" | "REJECTED";
+
+export type VerificationStatus = "PENDING_EXTRACTION" | "EXTRACTED_HIGH_CONFIDENCE" | "EXTRACTED_LOW_CONFIDENCE" | "MANUAL_REVIEW_REQUIRED" | "VERIFIED" | "REJECTED" | "AI_FLAGGED" | "PENDING";
 
 export interface ReceiptExtraction {
   amount: number | null;
@@ -52,6 +34,7 @@ export interface SubmissionListItem {
   smsRetryCount?: number;
   lastSmsAttempt?: string | null;
   smsError?: string | null;
+  note?: string | null;
   event: {
     expectedAmount: number | null;
     ticketPrice: number;
@@ -122,7 +105,7 @@ export interface EventStats {
 
 export interface ScanLogEntry {
   id: string;
-  ticketId: string;
+  ticketId?: string;
   staffName: string;
   buyerPhone: string;
   result: string;
@@ -149,6 +132,7 @@ export interface Influencer {
   isVerified: boolean;
   isActive: boolean;
   createdAt: string;
+  phone: string;
   tiktokUrl?: string | null;
   instagramUrl?: string | null;
   telegramUrl?: string | null;
@@ -172,8 +156,13 @@ export interface InfluencerEvent {
   currency: string;
   ticketsSold: number;
   maxCapacity: number;
+  expectedAmount?: number | null;
   venue?: string | null;
+  venueMapUrl?: string | null;
   city?: string | null;
+  description?: string | null;
+  coverImage?: string | null;
+  matchKickoff?: string | null;
   paymentInstructions?: string | null;
   paymentAccounts?: { type: string; number: string; name?: string }[] | null;
 }
@@ -183,7 +172,11 @@ export interface EventWithStats extends InfluencerEvent {
   influencer: {
     id: string;
     name: string;
+    slug: string;
     profilePhoto: string | null;
+    teamColor: string | null;
+    isVerified: boolean;
+    teamSupported: string | null;
   };
 }
 

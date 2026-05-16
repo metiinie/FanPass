@@ -27,6 +27,8 @@ export default async function InfluencerProfilePage({ params }: { params: { slug
     notFound();
   }
 
+  if (!inf) return null;
+
   const upcomingEvents = (inf.events || []).filter(
     (e: InfluencerEvent) => e.status === "ACTIVE" && new Date(e.dateTime) > new Date()
   );
@@ -67,7 +69,7 @@ export default async function InfluencerProfilePage({ params }: { params: { slug
                   <div className="flex items-center justify-center md:justify-start gap-2 mb-2">
                     <h1 className="text-4xl md:text-5xl font-bold text-white font-outfit tracking-tight">{inf.name}</h1>
                     {inf.isVerified && (
-                      <BadgeCheck className="w-8 h-8 text-brand-neon shrink-0" title="Verified Host" />
+                      <BadgeCheck className="w-8 h-8 text-brand-neon shrink-0" />
                     )}
                   </div>
                   {inf.teamSupported && (

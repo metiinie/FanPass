@@ -18,7 +18,7 @@ export default auth((req) => {
       if (role === "STAFF") return NextResponse.redirect(new URL("/scan", nextUrl));
       return NextResponse.redirect(new URL("/", nextUrl));
     }
-    return null;
+    return NextResponse.next();
   }
 
   if (!isLoggedIn && (isOrganizerRoute || isStaffRoute || isAdminRoute)) {
@@ -43,7 +43,7 @@ export default auth((req) => {
     return NextResponse.redirect(new URL("/", nextUrl));
   }
 
-  return null;
+  return NextResponse.next();
 });
 
 export const config = {

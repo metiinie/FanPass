@@ -27,6 +27,8 @@ export default async function EventPage({ params }: { params: { slug: string } }
     notFound();
   }
 
+  if (!event) return null;
+
   const isSoldOut = event.ticketsSold >= event.maxCapacity || event.status === "SOLD_OUT";
   const isClosed = event.status === "CLOSED";
   const isCancelled = event.status === "CANCELLED";
