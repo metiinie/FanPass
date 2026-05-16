@@ -23,15 +23,13 @@ export default async function EventPage({ params }: { params: { slug: string } }
   let event: EventWithStats | null = null;
   try {
     event = await fetchBackend(`/events/public/${params.slug}`, { requireAuth: false });
-  } catch (error) {
+  } catch {
     notFound();
   }
 
   if (!event) return null;
 
   const isSoldOut = event.ticketsSold >= event.maxCapacity || event.status === "SOLD_OUT";
-  const isClosed = event.status === "CLOSED";
-  const isCancelled = event.status === "CANCELLED";
   const availableSeats = Math.max(0, event.maxCapacity - event.ticketsSold);
   const inf = event.influencer;
 

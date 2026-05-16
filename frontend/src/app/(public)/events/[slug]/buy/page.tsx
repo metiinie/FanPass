@@ -3,10 +3,10 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { formatCurrency } from "@/lib/utils";
-import { CheckCircle2, Copy, UploadCloud, AlertCircle, Loader2, ArrowRight } from "lucide-react";
+import { Copy, UploadCloud, AlertCircle, Loader2, ArrowRight } from "lucide-react";
 import { fetchBackend } from "@/lib/apiClient";
 import { toast } from "sonner";
-import type { EventWithStats, ReceiptExtraction } from "@/types";
+import type { EventWithStats } from "@/types";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -27,7 +27,6 @@ export default function TicketPurchasePage({ params }: { params: { slug: string 
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [extraction, setExtraction] = useState<ReceiptExtraction | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -35,8 +34,8 @@ export default function TicketPurchasePage({ params }: { params: { slug: string 
       try {
         const data = await fetchBackend(`/events/public/${params.slug}`, { requireAuth: false });
         setEvent(data);
-      } catch (err: any) {
-        setError(err.message || "Failed to load event");
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : "Failed to load event");
       } finally {
         setIsLoading(false);
       }
@@ -98,15 +97,10 @@ export default function TicketPurchasePage({ params }: { params: { slug: string 
         }),
       });
 
-      setExtraction(response.extraction);
-      toast.success("Receipt submitted successfully!");
-      
-      // Delay slightly so user can see extraction success (if we had a middle step),
-      // but the spec says redirect to status page.
       router.push(`/tickets/${response.ticketId}/status`);
       
-    } catch (err: any) {
-      setError(err.message || "Failed to submit receipt");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to submit receipt");
       setIsSubmitting(false);
     }
   };

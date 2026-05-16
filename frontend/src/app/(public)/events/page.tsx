@@ -1,7 +1,7 @@
 import { fetchBackend } from "@/lib/apiClient";
 import { Influencer, EventWithInfluencer } from "@/types";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { MapPin, ChevronRight, Search, BadgeCheck, ArrowRight, Ticket } from "lucide-react";
+import { BadgeCheck, ArrowRight, Ticket } from "lucide-react";
 import Link from "next/link";
 
 export const metadata = {
