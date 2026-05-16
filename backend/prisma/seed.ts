@@ -21,10 +21,10 @@ async function main() {
   // 1. Create Super Admin
   const superAdmin = await prisma.superAdmin.create({
     data: {
-      email: 'superawol@gmail.com',
+      email: 'supermehal@mehal.com',
       password: hashedPassword,
       phone: '+251918982161',
-      name: 'super_awol',
+      name: 'super_mehal',
     },
   });
   console.log('✅ Super Admin created:', superAdmin.name);
@@ -32,11 +32,11 @@ async function main() {
   // 2. Create Influencer (formerly Organizer)
   const influencer = await prisma.influencer.create({
     data: {
-      email: 'influencer@gmail.com',
+      email: 'Influencer@mehal.com',
       password: hashedPassword,
       phone: '+251718280155',
-      name: 'org_awol',
-      slug: 'org-awol',
+      name: 'org_mehal',
+      slug: 'org-mehal',
       bio: 'Football watch party host. Big events, bigger screens.',
       teamSupported: 'Arsenal',
       teamColor: '#EF0107',
@@ -62,10 +62,10 @@ async function main() {
   // 3. Create Staff
   const staff = await prisma.staff.create({
     data: {
-      email: 'awolstaff@gmail.com',
+      email: 'staff@mehal.com',
       password: hashedPassword,
       phone: '+251918982122',
-      name: 'staff_awol',
+      name: 'staff_mehal',
       organizerId: influencer.id,
     },
   });
